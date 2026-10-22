@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Specified dark palette */
+    --bg-base:        #0F172A;
+    --surface-1:      #1E293B;
+    --surface-2:      #334155;
+    --border-col:     #475569;
+    --text-primary:   #F8FAFC;
+    --accent:         #38BDF8;
+    --success:        #22C55E;
+    --warning:        #F59E0B;
+    --danger:         #EF4444;
+
+    /* CSS vars used by Tailwind theme */
+    --background: 222 47% 11%;      /* #0F172A */
+    --foreground: 210 40% 98%;      /* #F8FAFC */
+
+    --card: 217 33% 17%;            /* #1E293B */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 215 25% 27%;         /* #334155 */
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 199 89% 48%;         /* #38BDF8 */
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 215 25% 27%;       /* #334155 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 25% 27%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 199 89% 48%;          /* #38BDF8 */
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;       /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 19% 35%;          /* #475569 */
+    --input: 215 19% 35%;
+    --ring: 199 89% 48%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  body {
+    background-color: #0F172A;
+    color: #F8FAFC;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Tabular numbers for financial data */
+  .tabular-nums,
+  td.numeric,
+  .money,
+  .amount {
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  code, pre {
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+    color: #F8FAFC;
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0F172A; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748B; }
+
+/* Card surface styles */
+.card-surface {
+  background-color: #1E293B;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+}
+
+.card-elevated {
+  background-color: #334155;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+}
+
+/* Status badge helpers */
+.badge-success  { background: rgba(34,197,94,0.15);  color: #22C55E; border: 1px solid rgba(34,197,94,0.3); }
+.badge-warning  { background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); }
+.badge-danger   { background: rgba(239,68,68,0.15);  color: #EF4444; border: 1px solid rgba(239,68,68,0.3); }
+.badge-accent   { background: rgba(56,189,248,0.15); color: #38BDF8; border: 1px solid rgba(56,189,248,0.3); }
+.badge-neutral  { background: rgba(100,116,139,0.2); color: #94A3B8; border: 1px solid rgba(100,116,139,0.3); }
+
+/* Accent glow for key actions */
+.btn-primary {
+  background-color: #38BDF8;
+  color: #0F172A;
+  font-weight: 500;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary:hover {
+  background-color: #7DD3FC;
+  box-shadow: 0 0 14px rgba(56,189,248,0.3);
+}
+
+/* Subtle row hover */
+.table-row-hover:hover {
+  background-color: rgba(255,255,255,0.03);
+}
+
+/* Focus ring */
+input:focus, select:focus, textarea:focus, button:focus-visible {
+  outline: 2px solid #38BDF8;
+  outline-offset: 2px;
+}
+
+/* Divider */
+.divider {
+  border-top: 1px solid #475569;
+}
+
+/* Transition defaults */
+/* Transition defaults */
+.transition-fast { transition: all 0.12s ease; }
+.transition-med  { transition: all 0.2s ease; }
+
+/* ── Legacy compatibility — existing pages use these class names ── */
+
+/* glass-panel used by AccountsPage, ExpensesPage, etc. */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.7);    /* #1E293B at 70% */
+  border: 1px solid #334155;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.glass-panel-hover {
+  transition: all 0.15s ease;
+}
+.glass-panel-hover:hover {
+  background: rgba(51, 65, 85, 0.7);   /* #334155 at 70% */
+  border-color: #475569;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -8px rgba(0,0,0,0.5);
+}
+/* Remove old felt/gold glows — replace with sky accent */
+.glow-felt { box-shadow: 0 0 20px -5px rgba(56,189,248,0.15); }
+.glow-gold  { box-shadow: 0 0 20px -5px rgba(245,158,11,0.20); }
+
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0F172A inset !important;
+  -webkit-text-fill-color: #F8FAFC !important;
+  caret-color: #F8FAFC !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+

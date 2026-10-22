@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+venv/
+ENV/
+*.pyc
+
+# Backend specific
+backend/.env
+backend/alembic.ini.bak
+
+# SQLite databases (live DB — never commit)
+*.db
+*.sqlite
+*.sqlite3
+data/billiard.db
+data/*.db
+
+# Backups (never commit — too large)
+backups/*.db
+backups/*.zip
+
+# Node.js / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Build outputs
+dist/
+build/
+*.local
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Desktop.ini
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.coverage
+
+# Keep placeholder files
+!data/.gitkeep
+!backups/.gitkeep
