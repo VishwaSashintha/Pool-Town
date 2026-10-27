@@ -41,8 +41,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Billiard Hall Management and Accounting System",
-    description="Professional, local-first management and accounting system for Akash, Pasan, and Vishwa.",
+    title="Pool Town — Billiard Hall Management and Accounting ERP",
+    description="Professional management and accounting system for Pool Town (Akash, Pasan, and Vishwa).",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -76,14 +76,26 @@ def health_check():
 @app.get("/api/info", tags=["System"])
 def system_info(db: Session = Depends(get_db)):
     """System information including business owners and database stats."""
+    import json
     from app.models.owners import Owner
     from app.models.accounts import FinancialAccount
+    from app.models.audit import AppSetting
 
     owners = db.query(Owner).filter(Owner.is_active == True).all()
     accounts_count = db.query(FinancialAccount).count()
 
+    bn_setting = db.query(AppSetting).filter(AppSetting.key == "business_name").first()
+    business_name = settings.business_name
+    if bn_setting and bn_setting.value:
+        try:
+            parsed = json.loads(bn_setting.value)
+            if parsed:
+                business_name = str(parsed)
+        except Exception:
+            business_name = bn_setting.value
+
     return {
-        "business_name": settings.business_name,
+        "business_name": business_name,
         "currency": "LKR",
         "currency_symbol": "Rs.",
         "owners": [
@@ -100,8 +112,9 @@ def system_info(db: Session = Depends(get_db)):
     }
 
 
+
 # Include business domain routers
-from app.routers import pricing, players, sessions, payments, inventory, expenses, accounts, auth, drinks, owners, backup, reports, equipment
+from app.routers import pricing, players, sessions, payments, inventory, expenses, accounts, auth, drinks, owners, backup, reports, equipment, admin, settings as settings_router
 
 app.include_router(auth.router)
 app.include_router(pricing.router)
@@ -116,3 +129,7 @@ app.include_router(owners.router)
 app.include_router(backup.router)
 app.include_router(reports.router)
 app.include_router(equipment.router)
+app.include_router(admin.router)
+app.include_router(settings_router.router)
+
+

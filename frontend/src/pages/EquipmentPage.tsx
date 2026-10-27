@@ -441,10 +441,10 @@ export const EquipmentPage: React.FC = () => {
                     onChange={e => setAccountId(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500"
                   >
-                    <option value="">Default: Cash in Hand (1001)</option>
+                    <option value="">Default: Cash in Hand</option>
                     {accounts.map((a: FinancialAccount) => (
                       <option key={a.id} value={a.id}>
-                        {a.code} — {a.name}
+                        {a.name}
                       </option>
                     ))}
                   </select>

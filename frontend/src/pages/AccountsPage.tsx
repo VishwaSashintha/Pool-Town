@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRightLeft,
@@ -12,16 +13,36 @@ import {
   CheckCircle2,
   History,
   FileCheck,
+  Banknote,
+  PiggyBank,
+  Wallet,
+  Building,
+  FileSpreadsheet,
+  Coins,
 } from "lucide-react";
 import { api } from "@/api/client";
 import { MoneyDisplay } from "@/components/common/MoneyDisplay";
 import { rupeesToPaise, formatLKR } from "@/lib/money";
+import type { FinancialAccount } from "@/types";
 
 type ActiveTab = "treasury" | "reconciliation" | "periods" | "opening";
 
 export const AccountsPage: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ActiveTab>("treasury");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      await api.reports.downloadExport("cash-bank");
+    } catch (err: any) {
+      alert(err.message || "Failed to download Excel report");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Transfer form state
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -90,6 +111,19 @@ export const AccountsPage: React.FC = () => {
   const bankAccounts = accounts.filter((a) =>
     ["bank", "savings"].includes(a.account_type)
   );
+
+  const operatingCashAccount = accounts.find((a: FinancialAccount) => a.code === "1001");
+  const operatingBankAccount = accounts.find((a: FinancialAccount) => a.code === "1002");
+  const savingsBankAccount = accounts.find((a: FinancialAccount) => a.code === "1003");
+  const savingsCashAccount = accounts.find((a: FinancialAccount) => a.code === "1004");
+
+  const operatingCashPaise = operatingCashAccount?.current_balance_paise || 0;
+  const operatingBankPaise = operatingBankAccount?.current_balance_paise || 0;
+  const totalAvailableBusinessMoneyPaise = operatingCashPaise + operatingBankPaise;
+
+  const savingsCashPaise = savingsCashAccount?.current_balance_paise || 0;
+  const savingsBankPaise = savingsBankAccount?.current_balance_paise || 0;
+  const totalBusinessSavingsPaise = savingsCashPaise + savingsBankPaise;
 
   const activeBankId = selectedBankAccountId || (bankAccounts.length > 0 ? bankAccounts[0].id : 0);
 
@@ -226,22 +260,43 @@ export const AccountsPage: React.FC = () => {
           </p>
         </div>
 
-        {activeTab === "treasury" && (
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => {
-              if (cashAccounts.length >= 2) {
-                setFromAccountId(cashAccounts[0].id);
-                setToAccountId(cashAccounts[1].id);
-              }
-              setTransferError("");
-              setIsTransferModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition shadow-md shrink-0"
+            onClick={() => navigate("/partners")}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 hover:border-emerald-500/40 text-xs font-semibold shadow-sm transition shrink-0 cursor-pointer"
+            title="Record money collected by partners (Akash, Pasan, Vishwa)"
           >
-            <ArrowRightLeft className="h-4 w-4" />
-            <span>Transfer Between Accounts</span>
+            <Coins className="h-4 w-4 text-emerald-400" />
+            <span>Record Money Collected</span>
           </button>
-        )}
+
+          {activeTab === "treasury" && (
+            <button
+              onClick={() => {
+                if (cashAccounts.length >= 2) {
+                  setFromAccountId(cashAccounts[0].id);
+                  setToAccountId(cashAccounts[1].id);
+                }
+                setTransferError("");
+                setIsTransferModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition shadow-md shrink-0 cursor-pointer"
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              <span>Transfer Between Accounts</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 hover:border-emerald-500/40 text-xs font-semibold shadow-sm transition shrink-0 cursor-pointer disabled:opacity-50"
+            title="Download Cash & Bank accounts and transfers in Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
+            <span>{isExporting ? "Exporting…" : "Export to Excel (.xlsx)"}</span>
+          </button>
+        </div>
       </div>
 
       {/* Navigation Sub-Tabs */}
@@ -255,7 +310,7 @@ export const AccountsPage: React.FC = () => {
           }`}
         >
           <Landmark className="h-4 w-4" />
-          <span>Treasury & Ledger</span>
+          <span>Cash, Bank & Savings</span>
         </button>
 
         <button
@@ -267,7 +322,7 @@ export const AccountsPage: React.FC = () => {
           }`}
         >
           <Calculator className="h-4 w-4" />
-          <span>Cash & Bank Reconciliation</span>
+          <span>Cash & Bank Balance Checks</span>
         </button>
 
         <button
@@ -298,32 +353,143 @@ export const AccountsPage: React.FC = () => {
       {/* TAB 1: TREASURY & GENERAL LEDGER */}
       {activeTab === "treasury" && (
         <div className="space-y-8">
-          {/* Liquid Treasury Cards */}
-          <div>
-            <h3 className="text-xs uppercase font-semibold tracking-wider text-muted-foreground mb-3">
-              Liquid Treasury & Bank Balances
-            </h3>
+          {/* ── Section A: Cash & Bank (Operating Money) ── */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-emerald-400" />
+                <span>Section A: Cash & Bank</span>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Operating business money available for daily expenses and bills (excludes savings)
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {cashAccounts.map((a) => (
-                <div
-                  key={a.id}
-                  className="p-5 rounded-xl border border-border/80 bg-card/60 glass-panel space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs text-emerald-400 font-semibold">{a.code}</span>
-                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-secondary font-medium">
-                      {a.account_type}
-                    </span>
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">{a.name}</p>
-                  <div className="text-2xl font-bold font-mono text-foreground pt-1">
-                    <MoneyDisplay paise={a.current_balance_paise || 0} />
-                  </div>
-                  {a.description && (
-                    <p className="text-xs text-muted-foreground pt-1">{a.description}</p>
-                  )}
+              {/* Cash in Hand */}
+              <div
+                className="p-5 rounded-xl border border-border/80 space-y-2"
+                style={{ backgroundColor: "#1E293B" }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
+                    Physical Cash
+                  </span>
+                  <Wallet className="h-4 w-4 text-emerald-400" />
                 </div>
-              ))}
+                <p className="text-sm font-semibold text-slate-200">Cash in Hand</p>
+                <div className="text-2xl font-bold font-mono text-emerald-400 pt-1">
+                  <MoneyDisplay paise={operatingCashPaise} />
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">Physical cash available on premises</p>
+              </div>
+
+              {/* Main Bank Account */}
+              <div
+                className="p-5 rounded-xl border border-border/80 space-y-2"
+                style={{ backgroundColor: "#1E293B" }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-semibold border border-sky-500/20">
+                    Operating Bank
+                  </span>
+                  <Building className="h-4 w-4 text-sky-400" />
+                </div>
+                <p className="text-sm font-semibold text-slate-200">Main Bank Account</p>
+                <div className="text-2xl font-bold font-mono text-sky-400 pt-1">
+                  <MoneyDisplay paise={operatingBankPaise} />
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">Primary operational bank checking account</p>
+              </div>
+
+              {/* Total Available Business Money */}
+              <div
+                className="p-5 rounded-xl border border-emerald-500/30 space-y-2 bg-gradient-to-br from-emerald-500/15 via-slate-800 to-slate-900 shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                    Available Now
+                  </span>
+                  <Banknote className="h-4 w-4 text-emerald-300" />
+                </div>
+                <p className="text-sm font-bold text-white">Total Available Business Money</p>
+                <div className="text-2xl font-bold font-mono text-white pt-1">
+                  <MoneyDisplay paise={totalAvailableBusinessMoneyPaise} />
+                </div>
+                <p className="text-xs text-emerald-300/80 pt-1">
+                  Cash in Hand + Main Bank Account (excludes savings)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section B: Business Savings ── */}
+          <div className="space-y-3 pt-2">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <PiggyBank className="h-4 w-4 text-indigo-400" />
+                <span>Section B: Business Savings</span>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Dedicated business savings reserve (held separately from operating cash)
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Total Business Savings */}
+              <div
+                className="p-5 rounded-xl border border-indigo-500/30 space-y-2 bg-gradient-to-br from-indigo-500/15 via-slate-800 to-slate-900 shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                    Total Savings
+                  </span>
+                  <PiggyBank className="h-4 w-4 text-indigo-300" />
+                </div>
+                <p className="text-sm font-bold text-white">Total Business Savings</p>
+                <div className="text-2xl font-bold font-mono text-white pt-1">
+                  <MoneyDisplay paise={totalBusinessSavingsPaise} />
+                </div>
+                <p className="text-xs text-indigo-300/80 pt-1">
+                  Savings Cash + Savings Bank
+                </p>
+              </div>
+
+              {/* Savings held as Cash */}
+              <div
+                className="p-5 rounded-xl border border-border/80 space-y-2"
+                style={{ backgroundColor: "#1E293B" }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
+                    Savings in Cash
+                  </span>
+                  <Wallet className="h-4 w-4 text-emerald-400" />
+                </div>
+                <p className="text-sm font-semibold text-slate-200">Savings held as Cash</p>
+                <div className="text-2xl font-bold font-mono text-emerald-400 pt-1">
+                  <MoneyDisplay paise={savingsCashPaise} />
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">Physical cash savings reserve</p>
+              </div>
+
+              {/* Savings held in Bank */}
+              <div
+                className="p-5 rounded-xl border border-border/80 space-y-2"
+                style={{ backgroundColor: "#1E293B" }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-semibold border border-sky-500/20">
+                    Savings in Bank
+                  </span>
+                  <Building className="h-4 w-4 text-sky-400" />
+                </div>
+                <p className="text-sm font-semibold text-slate-200">Savings held in Bank</p>
+                <div className="text-2xl font-bold font-mono text-sky-400 pt-1">
+                  <MoneyDisplay paise={savingsBankPaise} />
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">Dedicated bank savings reserve</p>
+              </div>
             </div>
           </div>
 
@@ -351,8 +517,8 @@ export const AccountsPage: React.FC = () => {
                       <tr key={t.id} className="hover:bg-secondary/20">
                         <td className="py-2.5 px-3 font-mono">{t.transfer_date}</td>
                         <td className="py-2.5 px-3 font-mono text-emerald-400 font-medium">{t.reference}</td>
-                        <td className="py-2.5 px-3">{t.from_account_code} — {t.from_account_name}</td>
-                        <td className="py-2.5 px-3">{t.to_account_code} — {t.to_account_name}</td>
+                        <td className="py-2.5 px-3 font-medium text-slate-200">{t.from_account_name}</td>
+                        <td className="py-2.5 px-3 font-medium text-slate-200">{t.to_account_name}</td>
                         <td className="py-2.5 px-3 text-right font-mono font-bold text-white">
                           <MoneyDisplay paise={t.amount_paise} />
                         </td>
@@ -404,7 +570,6 @@ export const AccountsPage: React.FC = () => {
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs uppercase bg-secondary/40 text-muted-foreground border-b border-border/60">
                     <tr>
-                      <th className="py-2.5 px-4">Code</th>
                       <th className="py-2.5 px-4">Account Name</th>
                       <th className="py-2.5 px-4 text-right">Debit (Paise)</th>
                       <th className="py-2.5 px-4 text-right">Credit (Paise)</th>
@@ -414,7 +579,6 @@ export const AccountsPage: React.FC = () => {
                   <tbody className="divide-y divide-border/40 font-mono text-xs">
                     {trialBalance.map((r) => (
                       <tr key={r.account_code} className="hover:bg-secondary/20 transition-colors">
-                        <td className="py-3 px-4 font-bold text-emerald-400">{r.account_code}</td>
                         <td className="py-3 px-4 font-sans font-medium text-foreground">
                           {r.account_name}
                         </td>
@@ -440,7 +604,7 @@ export const AccountsPage: React.FC = () => {
                   </tbody>
                   <tfoot className="bg-secondary/50 font-mono font-bold text-xs border-t-2 border-border">
                     <tr>
-                      <td colSpan={2} className="py-3 px-4 uppercase text-foreground">
+                      <td colSpan={1} className="py-3 px-4 uppercase text-foreground">
                         Totals
                       </td>
                       <td className="py-3 px-4 text-right text-emerald-400">
@@ -471,8 +635,8 @@ export const AccountsPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Calculator className="h-5 w-5 text-emerald-400" />
                   <div>
-                    <h3 className="font-bold text-base text-white">Daily Physical Cash Count</h3>
-                    <p className="text-xs text-muted-foreground">Account 1001 · Cash in Hand</p>
+                    <h3 className="font-bold text-base text-white">Daily Cash Check</h3>
+                    <p className="text-xs text-muted-foreground">Cash in Hand</p>
                   </div>
                 </div>
               </div>
@@ -485,7 +649,7 @@ export const AccountsPage: React.FC = () => {
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-muted-foreground mb-1">Count Date</label>
+                  <label className="block text-muted-foreground mb-1">Date</label>
                   <input
                     type="date"
                     value={cashCountDate}
@@ -496,8 +660,8 @@ export const AccountsPage: React.FC = () => {
 
                 <div className="p-4 rounded-xl bg-secondary/30 border border-border/60 flex items-center justify-between">
                   <div>
-                    <span className="text-muted-foreground">Calculated Book Cash:</span>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Sum of all cash debits minus credits</p>
+                    <span className="text-muted-foreground">Expected Cash Balance:</span>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Sum of all cash received minus cash paid</p>
                   </div>
                   <div className="text-lg font-bold font-mono text-emerald-400">
                     <MoneyDisplay paise={expectedCashPaise} />
@@ -505,7 +669,7 @@ export const AccountsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-muted-foreground mb-1">Counted Physical Cash (Rs.) *</label>
+                  <label className="block text-muted-foreground mb-1">Actual Cash Counted (Rs.) *</label>
                   <input
                     type="number"
                     min={0}
@@ -515,7 +679,7 @@ export const AccountsPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Variance Display */}
+                {/* Difference Display */}
                 <div
                   className={`p-3 rounded-xl border flex items-center justify-between font-mono ${
                     cashVariancePaise === 0
@@ -525,18 +689,18 @@ export const AccountsPage: React.FC = () => {
                       : "bg-rose-500/10 border-rose-500/30 text-rose-300"
                   }`}
                 >
-                  <span className="font-sans font-medium">Variance (Counted − Expected):</span>
+                  <span className="font-sans font-medium">Difference:</span>
                   <span className="font-bold text-sm">
                     {cashVariancePaise === 0
-                      ? "✓ Exact Match (Rs. 0)"
+                      ? "✓ Balances match perfectly (Rs. 0)"
                       : cashVariancePaise > 0
                       ? `Surplus: +${formatLKR(cashVariancePaise)}`
-                      : `Shortage: -${formatLKR(Math.abs(cashVariancePaise))}`}
+                      : `Shortage: -${formatLKR(Math.abs(cashVariancePaise))} (Needs checking)`}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-muted-foreground mb-1">Investigated / Counted By</label>
+                  <label className="block text-muted-foreground mb-1">Checked By</label>
                   <input
                     type="text"
                     placeholder="e.g. Vishwa / Akash"
@@ -547,10 +711,10 @@ export const AccountsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-muted-foreground mb-1">Investigation Notes</label>
+                  <label className="block text-muted-foreground mb-1">Notes (Optional)</label>
                   <textarea
                     rows={2}
-                    placeholder="Document explanation for any discrepancy (Requirement 7.2)"
+                    placeholder="Optional notes or discrepancy explanations"
                     value={cashNotes}
                     onChange={(e) => setCashNotes(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground"
@@ -563,7 +727,7 @@ export const AccountsPage: React.FC = () => {
                   disabled={cashCountMutation.isPending}
                   className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition shadow-md disabled:opacity-50"
                 >
-                  {cashCountMutation.isPending ? "Recording Count..." : "Record & Log Cash Count"}
+                  {cashCountMutation.isPending ? "Saving..." : "Save Cash Check"}
                 </button>
               </div>
             </div>
@@ -574,8 +738,8 @@ export const AccountsPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Landmark className="h-5 w-5 text-blue-400" />
                   <div>
-                    <h3 className="font-bold text-base text-white">Bank Statement Reconciliation</h3>
-                    <p className="text-xs text-muted-foreground">Main Bank (1002) & Savings (1003)</p>
+                    <h3 className="font-bold text-base text-white">Bank Balance Check</h3>
+                    <p className="text-xs text-muted-foreground">Main Bank & Savings</p>
                   </div>
                 </div>
               </div>
@@ -596,7 +760,7 @@ export const AccountsPage: React.FC = () => {
                   >
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.code} — {b.name} ({formatLKR(b.current_balance_paise || 0)})
+                        {b.name} ({formatLKR(b.current_balance_paise || 0)})
                       </option>
                     ))}
                   </select>
@@ -614,7 +778,7 @@ export const AccountsPage: React.FC = () => {
 
                 <div className="p-4 rounded-xl bg-secondary/30 border border-border/60 flex items-center justify-between">
                   <div>
-                    <span className="text-muted-foreground">Book Balance (Ledger):</span>
+                    <span className="text-muted-foreground">Bank Balance in System:</span>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Balance per journal records</p>
                   </div>
                   <div className="text-lg font-bold font-mono text-blue-400">
@@ -623,7 +787,7 @@ export const AccountsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-muted-foreground mb-1">Ending Statement Balance (Rs.) *</label>
+                  <label className="block text-muted-foreground mb-1">Bank Statement Balance (Rs.) *</label>
                   <input
                     type="number"
                     value={statementBalanceRupees}
@@ -632,7 +796,7 @@ export const AccountsPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Variance Display */}
+                {/* Difference Display */}
                 <div
                   className={`p-3 rounded-xl border flex items-center justify-between font-mono ${
                     bankVariancePaise === 0
@@ -640,19 +804,19 @@ export const AccountsPage: React.FC = () => {
                       : "bg-rose-500/10 border-rose-500/30 text-rose-300"
                   }`}
                 >
-                  <span className="font-sans font-medium">Variance (Statement − Book):</span>
+                  <span className="font-sans font-medium">Difference:</span>
                   <span className="font-bold text-sm">
                     {bankVariancePaise === 0
-                      ? "✓ Reconciled (Rs. 0)"
-                      : formatLKR(bankVariancePaise)}
+                      ? "✓ Balances match perfectly (Rs. 0)"
+                      : `Difference: ${formatLKR(bankVariancePaise)} (Needs checking)`}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-muted-foreground mb-1">Reconciliation Notes</label>
+                  <label className="block text-muted-foreground mb-1">Notes (Optional)</label>
                   <textarea
                     rows={2}
-                    placeholder="Notes, uncredited deposits, or bank charge adjustments"
+                    placeholder="Notes or explanations"
                     value={bankRecNotes}
                     onChange={(e) => setBankRecNotes(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground"
@@ -665,7 +829,7 @@ export const AccountsPage: React.FC = () => {
                   disabled={bankRecMutation.isPending}
                   className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition shadow-md disabled:opacity-50"
                 >
-                  {bankRecMutation.isPending ? "Saving..." : "Save Bank Reconciliation"}
+                  {bankRecMutation.isPending ? "Saving..." : "Save Bank Check"}
                 </button>
               </div>
             </div>
@@ -675,9 +839,9 @@ export const AccountsPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Cash Counts Log */}
             <div className="rounded-xl border border-border/70 bg-card/60 p-5 glass-panel space-y-3">
-              <h4 className="font-semibold text-sm text-white">Past Physical Cash Counts</h4>
+              <h4 className="font-semibold text-sm text-white">Past Cash Checks</h4>
               {cashCounts.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4">No cash count entries yet.</p>
+                <p className="text-xs text-muted-foreground py-4">No cash check entries yet.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
@@ -686,8 +850,8 @@ export const AccountsPage: React.FC = () => {
                         <th className="py-2 px-2.5">Date</th>
                         <th className="py-2 px-2.5 text-right">Expected</th>
                         <th className="py-2 px-2.5 text-right">Counted</th>
-                        <th className="py-2 px-2.5 text-right">Diff</th>
-                        <th className="py-2 px-2.5">Investigator</th>
+                        <th className="py-2 px-2.5 text-right">Difference</th>
+                        <th className="py-2 px-2.5">Checked By</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40 font-mono">
@@ -712,9 +876,9 @@ export const AccountsPage: React.FC = () => {
 
             {/* Bank Reconciliations Log */}
             <div className="rounded-xl border border-border/70 bg-card/60 p-5 glass-panel space-y-3">
-              <h4 className="font-semibold text-sm text-white">Past Bank Reconciliations</h4>
+              <h4 className="font-semibold text-sm text-white">Past Bank Checks</h4>
               {bankRecs.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4">No bank reconciliation entries yet.</p>
+                <p className="text-xs text-muted-foreground py-4">No bank check entries yet.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
@@ -722,16 +886,18 @@ export const AccountsPage: React.FC = () => {
                       <tr>
                         <th className="py-2 px-2.5">Date</th>
                         <th className="py-2 px-2.5">Account</th>
-                        <th className="py-2 px-2.5 text-right">Statement</th>
-                        <th className="py-2 px-2.5 text-right">Book</th>
-                        <th className="py-2 px-2.5 text-right">Diff</th>
+                        <th className="py-2 px-2.5 text-right">Statement Balance</th>
+                        <th className="py-2 px-2.5 text-right">System Balance</th>
+                        <th className="py-2 px-2.5 text-right">Difference</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40 font-mono">
                       {bankRecs.map((b) => (
                         <tr key={b.id} className="hover:bg-secondary/20">
                           <td className="py-2 px-2.5">{b.reconciliation_date}</td>
-                          <td className="py-2 px-2.5 font-sans">{b.account_code}</td>
+                          <td className="py-2 px-2.5 font-sans text-slate-200">
+                            {accounts.find((a: FinancialAccount) => a.code === b.account_code || a.id === b.account_id)?.name || "Bank Account"}
+                          </td>
                           <td className="py-2 px-2.5 text-right text-white font-medium">{formatLKR(b.statement_balance_paise)}</td>
                           <td className="py-2 px-2.5 text-right">{formatLKR(b.book_balance_paise)}</td>
                           <td className={`py-2 px-2.5 text-right font-bold ${
@@ -879,7 +1045,7 @@ export const AccountsPage: React.FC = () => {
               <div>
                 <h3 className="font-bold text-base text-white">Opening Balances as of 31 December 2025</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Establishes Day-1 balance sheet before operations begin on 1 Jan 2026 (Decision D-007)
+                  Establishes initial opening balance sheet before live operations begin
                 </p>
               </div>
               <span
@@ -914,7 +1080,6 @@ export const AccountsPage: React.FC = () => {
                   <table className="w-full text-xs text-left">
                     <thead className="bg-secondary/40 uppercase text-muted-foreground border-b border-border/60">
                       <tr>
-                        <th className="py-2.5 px-3">Account</th>
                         <th className="py-2.5 px-3">Account Name</th>
                         <th className="py-2.5 px-3 text-right">Debit (Asset)</th>
                         <th className="py-2.5 px-3 text-right">Credit (Liab / Equity)</th>
@@ -923,7 +1088,6 @@ export const AccountsPage: React.FC = () => {
                     <tbody className="divide-y divide-border/40 font-mono">
                       {openingData.lines?.map((l: any, idx: number) => (
                         <tr key={idx} className="hover:bg-secondary/20">
-                          <td className="py-2.5 px-3 font-bold text-emerald-400">{l.account_code}</td>
                           <td className="py-2.5 px-3 font-sans text-foreground">{l.account_name}</td>
                           <td className="py-2.5 px-3 text-right">
                             {l.is_debit ? <MoneyDisplay paise={l.amount_paise} /> : "—"}
@@ -1003,7 +1167,7 @@ export const AccountsPage: React.FC = () => {
                 >
                   {cashAccounts.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.code} — {a.name} ({formatLKR(a.current_balance_paise || 0)})
+                      {a.name} ({formatLKR(a.current_balance_paise || 0)})
                     </option>
                   ))}
                 </select>
@@ -1020,7 +1184,7 @@ export const AccountsPage: React.FC = () => {
                 >
                   {cashAccounts.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.code} — {a.name}
+                      {a.name}
                     </option>
                   ))}
                 </select>

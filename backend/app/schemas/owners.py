@@ -20,10 +20,12 @@ class OwnerResponse(BaseModel):
 class OwnerTransactionCreate(BaseModel):
     owner_id: int
     transaction_date: date
-    transaction_type: str  # initial_capital, additional_capital, withdrawal, distribution
+    transaction_type: str  # initial_capital, additional_capital, withdrawal, distribution, advance
     amount_paise: int = Field(gt=0)
     account_id: int  # 1 (Cash) or 2 (Bank)
     description: str = Field(min_length=2, max_length=500)
+    period_year: Optional[int] = None
+    period_month: Optional[int] = None
     notes: Optional[str] = None
 
 
@@ -37,11 +39,38 @@ class OwnerTransactionResponse(BaseModel):
     amount_paise: int
     account_id: Optional[int] = None
     account_name: Optional[str] = None
+    period_year: Optional[int] = None
+    period_month: Optional[int] = None
     description: str
     notes: Optional[str] = None
     created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+
+class PartnerMonthlyDetail(BaseModel):
+    owner_id: int
+    owner_name: str
+    profit_share_percent: str
+    capital_balance_paise: int
+    monthly_allocation_paise: int
+    advances_paid_paise: int
+    distributions_paid_paise: int
+    remaining_payable_paise: int
+
+
+class PartnerMonthlyDistributionSummary(BaseModel):
+    year: int
+    month: int
+    period_label: str
+    net_profit_paise: int
+    savings_allocation_paise: int
+    total_partner_allocations_paise: int
+    total_advances_paid_paise: int
+    total_distributions_paid_paise: int
+    total_remaining_payable_paise: int
+    partners: list[PartnerMonthlyDetail]
+
 
 
 class LoanCreate(BaseModel):
@@ -116,3 +145,48 @@ class ProfitAllocationPost(BaseModel):
     month: int
     approved_by: str = Field(default="Owners (Akash, Pasan, Vishwa)")
     notes: Optional[str] = None
+
+
+class OwnerCollectionCreate(BaseModel):
+    collector_name: str = Field(min_length=1, max_length=100)
+    owner_id: Optional[int] = None
+    collection_date: date
+    amount_paise: Optional[int] = Field(default=None, ge=1)
+    destination_account_id: int
+    source_category: str = Field(min_length=1, max_length=100)
+    notes: Optional[str] = None
+    is_unknown_amount: bool = False
+
+
+class OwnerCollectionConfirm(BaseModel):
+    amount_paise: int = Field(gt=0)
+    notes: Optional[str] = None
+    confirmed_date: Optional[date] = None
+
+
+class OwnerCollectionUpdate(BaseModel):
+    notes: Optional[str] = None
+    source_category: Optional[str] = None
+    destination_account_id: Optional[int] = None
+
+
+class OwnerCollectionResponse(BaseModel):
+    id: int
+    reference: str
+    collector_name: str
+    owner_id: Optional[int] = None
+    collection_date: date
+    amount_paise: Optional[int] = None
+    status: str
+    destination_account_id: int
+    destination_account_name: Optional[str] = None
+    source_category: str
+    notes: Optional[str] = None
+    created_by: Optional[str] = None
+    confirmed_at: Optional[datetime] = None
+    confirmed_by: Optional[str] = None
+    journal_entry_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+

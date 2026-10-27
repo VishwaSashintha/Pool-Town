@@ -9,6 +9,8 @@ import {
   AlertCircle,
   X,
   ChevronDown,
+  Ban,
+  CheckCircle2,
 } from "lucide-react";
 import { api } from "@/api/client";
 import { MoneyDisplay } from "@/components/common/MoneyDisplay";
@@ -71,6 +73,14 @@ export const PS4SessionsPage: React.FC = () => {
   const [collectBankRupees, setCollectBankRupees] = useState<number>(0);
   const [collectDate, setCollectDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [payError, setPayError] = useState<string>("");
+
+  // Void session states
+  const [voidSession, setVoidSession] = useState<PS4Session | null>(null);
+  const [voidAdminUser, setVoidAdminUser] = useState<string>("");
+  const [voidAdminPass, setVoidAdminPass] = useState<string>("");
+  const [voidReason, setVoidReason] = useState<string>("");
+  const [voidError, setVoidError] = useState<string>("");
+  const [voidSuccess, setVoidSuccess] = useState<string>("");
 
   useEffect(() => {
     if (searchParams.get("action") === "new") {
@@ -188,6 +198,26 @@ export const PS4SessionsPage: React.FC = () => {
     },
   });
 
+  const voidMutation = useMutation({
+    mutationFn: () => {
+      if (!voidSession) throw new Error("No session selected");
+      return api.ps4Sessions.void(
+        voidSession.id,
+        voidAdminUser.trim(),
+        voidAdminPass,
+        voidReason.trim() || undefined
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ps4-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      setVoidSuccess("PS4 session voided successfully. All accounting entries reversed.");
+    },
+    onError: (err: any) => {
+      setVoidError(err.message || "Failed to void session. Please check your admin credentials.");
+    },
+  });
+
   const resetForm = () => {
     setPlayerCount(1);
     setPlayer1Name("");
@@ -267,6 +297,7 @@ export const PS4SessionsPage: React.FC = () => {
             <option value="paid">Fully Paid</option>
             <option value="partial">Partially Paid</option>
             <option value="pending">Unpaid</option>
+            <option value="cancelled">Cancelled / Voided</option>
           </select>
         </div>
       </div>
@@ -330,6 +361,8 @@ export const PS4SessionsPage: React.FC = () => {
                             ? "bg-emerald-500/20 text-emerald-400"
                             : s.status === "partial"
                             ? "bg-amber-500/20 text-amber-400"
+                            : s.status === "cancelled"
+                            ? "bg-rose-500/20 text-rose-400 line-through"
                             : "bg-rose-500/20 text-rose-400"
                         }`}
                       >
@@ -337,20 +370,41 @@ export const PS4SessionsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-sans">
-                      {s.outstanding_paise > 0 && (
-                        <button
-                          onClick={() => {
-                            setPaymentSession(s);
-                            setCollectCashRupees(paiseToRupees(s.outstanding_paise));
-                            setCollectBankRupees(0);
-                            setCollectDate(new Date().toISOString().split("T")[0]);
-                            setPayError("");
-                          }}
-                          className="px-2.5 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 text-xs font-medium transition"
-                        >
-                          Collect Payment
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {s.status !== "cancelled" && s.outstanding_paise > 0 && (
+                          <button
+                            onClick={() => {
+                              setPaymentSession(s);
+                              setCollectCashRupees(paiseToRupees(s.outstanding_paise));
+                              setCollectBankRupees(0);
+                              setCollectDate(new Date().toISOString().split("T")[0]);
+                              setPayError("");
+                            }}
+                            className="px-2.5 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 text-xs font-medium transition"
+                          >
+                            Collect Payment
+                          </button>
+                        )}
+                        {s.status !== "cancelled" && (
+                          <button
+                            onClick={() => {
+                              setVoidSession(s);
+                              setVoidAdminUser("");
+                              setVoidAdminPass("");
+                              setVoidReason("");
+                              setVoidError("");
+                              setVoidSuccess("");
+                            }}
+                            title="Void Session (Admin)"
+                            className="p-1 rounded hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400 border border-transparent hover:border-rose-500/30 transition text-xs"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </button>
+                        )}
+                        {s.status === "cancelled" && (
+                          <span className="text-[11px] text-muted-foreground/50 italic">Voided</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -752,6 +806,134 @@ export const PS4SessionsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── Void Session Modal ────────────────────────────────────────────────── */}
+      {voidSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400">
+                  <Ban className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Void PS4 Session</h3>
+                  <p className="text-xs text-muted-foreground">{voidSession.reference}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setVoidSession(null); setVoidSuccess(""); setVoidError(""); }}
+                className="text-muted-foreground hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {voidSuccess ? (
+              <div className="flex flex-col items-center gap-4 py-4">
+                <div className="p-3 rounded-full bg-emerald-500/20 text-emerald-400">
+                  <CheckCircle2 className="h-8 w-8" />
+                </div>
+                <p className="text-sm text-emerald-300 text-center font-medium">{voidSuccess}</p>
+                <button
+                  onClick={() => { setVoidSession(null); setVoidSuccess(""); }}
+                  className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs space-y-1">
+                  <p className="font-semibold text-rose-300">⚠ This action cannot be undone</p>
+                  <ul className="list-disc list-inside text-rose-300/80 space-y-0.5">
+                    <li>Session will be marked as Voided/Cancelled</li>
+                    <li>Revenue journal entry will be reversed</li>
+                    <li>All payments will be reversed in accounting records</li>
+                    <li>Any outstanding balance will be cleared</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 rounded-lg bg-secondary/30 border border-border/50 text-xs space-y-1 font-mono">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Players:</span>
+                    <span className="text-foreground font-sans">{voidSession.customer_name || voidSession.player1?.name || "Gamer"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Charge:</span>
+                    <span className="text-foreground"><MoneyDisplay paise={voidSession.final_charge_paise} /></span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Paid:</span>
+                    <span className="text-emerald-400"><MoneyDisplay paise={voidSession.paid_amount_paise} /></span>
+                  </div>
+                </div>
+
+                {voidError && (
+                  <div className="p-3 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{voidError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Admin Username *</label>
+                      <input
+                        type="text"
+                        value={voidAdminUser}
+                        onChange={(e) => setVoidAdminUser(e.target.value)}
+                        placeholder="admin"
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Admin Password *</label>
+                      <input
+                        type="password"
+                        value={voidAdminPass}
+                        onChange={(e) => setVoidAdminPass(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Reason (Optional)</label>
+                    <input
+                      type="text"
+                      value={voidReason}
+                      onChange={(e) => setVoidReason(e.target.value)}
+                      placeholder="e.g. Accidental entry, wrong rate"
+                      className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => { setVoidSession(null); setVoidError(""); }}
+                    className="px-4 py-2 rounded-lg border border-border text-xs font-medium hover:bg-secondary/40 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setVoidError(""); voidMutation.mutate(); }}
+                    disabled={!voidAdminUser.trim() || !voidAdminPass.trim() || voidMutation.isPending}
+                    className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition shadow-sm disabled:opacity-50"
+                  >
+                    {voidMutation.isPending ? "Voiding..." : "Void Session"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

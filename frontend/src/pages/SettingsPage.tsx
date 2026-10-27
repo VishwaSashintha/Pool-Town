@@ -1,197 +1,754 @@
 /**
- * SettingsPage — system config, password change, backup.
- * Uses specified dark palette. No internal account codes exposed.
+ * SettingsPage — Essential ERP Configuration.
+ * Simplified into 3 practical, clean tabs:
+ * 1. Pricing & Rates (Editable Pool, PS4, and drink catalog pricing with admin verification)
+ * 2. Security & Credentials (Admin password and Edit-PIN management)
+ * 3. Backup & Recovery (Manual snapshots and safe database restore)
  */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
-  ShieldCheck, Database, Server,
-  Users, CircleDot, Gamepad2, Coffee, Lock, KeyRound, Eye, EyeOff,
-
-  CheckCircle2, AlertCircle,
+  CircleDot,
+  Gamepad2,
+  Coffee,
+  Database,
+  Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Shield,
+  Edit3,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { api } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
+import { formatLKR, rupeesToPaise, paiseToRupees } from "@/lib/money";
+import type { BackupSnapshot, PricingRatesResponse } from "@/types";
 
-/* ── Small helpers ──────────────────────────────────────────────────────── */
+/* ── UI Helpers ─────────────────────────────────────────────────────────── */
 
-const Section: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({
-  title, subtitle, children,
-}) => (
-  <div className="rounded-lg p-5 space-y-4" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
-    <div>
-      <h3 className="text-sm font-semibold" style={{ color: "#F8FAFC" }}>{title}</h3>
-      {subtitle && <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>{subtitle}</p>}
+const SectionCard: React.FC<{
+  title: string;
+  subtitle?: string;
+  icon?: React.ElementType;
+  badge?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, subtitle, icon: Icon, badge, action, children }) => (
+  <div
+    className="rounded-xl p-6 space-y-5"
+    style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
+  >
+    <div className="flex items-start justify-between gap-3 border-b border-slate-700/60 pb-4">
+      <div className="flex items-center gap-3">
+        {Icon && (
+          <div className="p-2 rounded-lg" style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}>
+            <Icon className="w-5 h-5 text-sky-400" />
+          </div>
+        )}
+        <div>
+          <h3 className="text-base font-semibold text-slate-100">{title}</h3>
+          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {badge && (
+          <span
+            className="text-xs px-2.5 py-1 rounded-full font-medium"
+            style={{
+              backgroundColor: "rgba(56,189,248,0.1)",
+              color: "#38BDF8",
+              border: "1px solid rgba(56,189,248,0.2)",
+            }}
+          >
+            {badge}
+          </span>
+        )}
+        {action}
+      </div>
     </div>
     {children}
   </div>
 );
 
-const InfoTile: React.FC<{ label: string; value: React.ReactNode; sub?: string }> = ({ label, value, sub }) => (
-  <div className="p-3 rounded-md space-y-1" style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}>
-    <p className="text-xs" style={{ color: "#64748B" }}>{label}</p>
-    <p className="text-sm font-semibold" style={{ color: "#F8FAFC" }}>{value}</p>
-    {sub && <p className="text-[11px]" style={{ color: "#475569" }}>{sub}</p>}
-  </div>
-);
-
-const Alert: React.FC<{ type: "success" | "error"; message: string; onClose: () => void }> = ({ type, message, onClose }) => (
+const AlertBanner: React.FC<{
+  type: "success" | "error";
+  message: string;
+  onClose: () => void;
+}> = ({ type, message, onClose }) => (
   <div
-    className="flex items-start justify-between gap-2 p-3 rounded-md text-xs"
+    className="flex items-start justify-between gap-2.5 p-3.5 rounded-lg text-xs"
     style={
       type === "success"
-        ? { backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", color: "#86EFAC" }
-        : { backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#FCA5A5" }
+        ? { backgroundColor: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", color: "#86EFAC" }
+        : { backgroundColor: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#FCA5A5" }
     }
   >
     <span className="flex items-center gap-2">
-      {type === "success" ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-      {message}
+      {type === "success" ? (
+        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+      ) : (
+        <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+      )}
+      <span className="font-medium leading-relaxed">{message}</span>
     </span>
-    <button onClick={onClose} className="opacity-60 hover:opacity-100 shrink-0">✕</button>
+    <button onClick={onClose} className="opacity-70 hover:opacity-100 text-sm px-1">✕</button>
   </div>
 );
 
-/* ── Change Password Form ───────────────────────────────────────────────── */
+/* ── Tab 1: Pricing & Rates (Editable with Admin Auth) ───────────────────── */
 
-const ChangePasswordForm: React.FC = () => {
-  const { logout } = useAuth();
-  const [current, setCurrent]   = useState("");
-  const [newPass, setNewPass]   = useState("");
-  const [newUser, setNewUser]   = useState("");
-  const [showCur, setShowCur]   = useState(false);
-  const [showNew, setShowNew]   = useState(false);
-  const [msg, setMsg]           = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [loading, setLoading]   = useState(false);
+const PricingTab: React.FC = () => {
+  const queryClient = useQueryClient();
+  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!current || !newPass) return;
-    if (newPass.length < 6) { setMsg({ type: "error", text: "New password must be at least 6 characters." }); return; }
-    setLoading(true);
-    setMsg(null);
-    try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ current_password: current, new_password: newPass, new_username: newUser || undefined }),
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [adminUser, setAdminUser] = useState("admin");
+  const [adminPass, setAdminPass] = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  // Form rates in rupees
+  const [poolBaseRupees, setPoolBaseRupees] = useState(500);
+  const [poolBlockRupees, setPoolBlockRupees] = useState(300);
+  const [ps41pRupees, setPs41pRupees] = useState(400);
+  const [ps42pRupees, setPs42pRupees] = useState(500);
+
+  const { data: rates, isLoading } = useQuery<PricingRatesResponse>({
+    queryKey: ["pricing-rates"],
+    queryFn: () => api.pricing.getRates(),
+  });
+
+  const openEditModal = () => {
+    if (rates) {
+      setPoolBaseRupees(paiseToRupees(rates.pool_base_charge_paise));
+      setPoolBlockRupees(paiseToRupees(rates.pool_block_charge_paise));
+      setPs41pRupees(paiseToRupees(rates.ps4_1player_rate_paise));
+      setPs42pRupees(paiseToRupees(rates.ps4_2players_rate_paise));
+    }
+    setAdminPass("");
+    setIsEditModalOpen(true);
+  };
+
+  const updateRatesMutation = useMutation({
+    mutationFn: () =>
+      api.pricing.updateRates({
+        admin_username: adminUser.trim(),
+        admin_password: adminPass,
+        pool_base_charge_paise: rupeesToPaise(poolBaseRupees),
+        pool_block_charge_paise: rupeesToPaise(poolBlockRupees),
+        ps4_1player_rate_paise: rupeesToPaise(ps41pRupees),
+        ps4_2players_rate_paise: rupeesToPaise(ps42pRupees),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["pricing-rates"], data);
+      setIsEditModalOpen(false);
+      setAdminPass("");
+      setMsg({
+        type: "success",
+        text: "Pricing rates updated successfully. New sessions will automatically use these rates.",
       });
-      const data = await res.json();
-      if (!res.ok) { setMsg({ type: "error", text: data.detail || "Failed to change password." }); return; }
-      setMsg({ type: "success", text: "Password changed. You will be signed out now." });
-      setCurrent(""); setNewPass(""); setNewUser("");
+    },
+    onError: (err: any) => {
+      setMsg({
+        type: "error",
+        text: err.message || "Failed to update pricing rates. Please verify administrator credentials.",
+      });
+    },
+  });
+
+  const handleSaveRates = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (poolBaseRupees < 0 || poolBlockRupees < 0 || ps41pRupees < 0 || ps42pRupees < 0) {
+      setMsg({ type: "error", text: "Rates cannot be negative." });
+      return;
+    }
+    if (!adminPass) {
+      setMsg({ type: "error", text: "Administrator password is required." });
+      return;
+    }
+    updateRatesMutation.mutate();
+  };
+
+  const poolBase = rates?.pool_base_charge_paise ?? 50000;
+  const poolBlock = rates?.pool_block_charge_paise ?? 30000;
+  const ps41p = rates?.ps4_1player_rate_paise ?? 40000;
+  const ps42p = rates?.ps4_2players_rate_paise ?? 50000;
+
+  // Calculate standard pool durations for preview table
+  const calcPool = (mins: number) => {
+    if (mins <= 60) return poolBase;
+    const hours = Math.floor(mins / 60);
+    const rem = mins % 60;
+    if (rem === 0) return hours * poolBase;
+    if (rem <= 30) return hours * poolBase + poolBlock;
+    return (hours + 1) * poolBase;
+  };
+
+  return (
+    <div className="space-y-6">
+      {msg && <AlertBanner type={msg.type} message={msg.text} onClose={() => setMsg(null)} />}
+
+      {/* Top Banner & Edit Button */}
+      <div
+        className="rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
+      >
+        <div>
+          <h2 className="text-base font-bold text-white">Operating Prices & Rates</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Prices apply to all newly started sessions. Historical transactions remain protected and unchanged.
+          </p>
+        </div>
+        <button
+          onClick={openEditModal}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold shadow-md transition-colors whitespace-nowrap cursor-pointer"
+          style={{ backgroundColor: "#38BDF8", color: "#0F172A" }}
+        >
+          <Edit3 className="w-4 h-4" />
+          <span>Edit Prices</span>
+        </button>
+      </div>
+
+      {/* Rate Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Pool Base */}
+        <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+            <CircleDot className="w-4 h-4 text-sky-400" />
+            <span>Pool — First Hour</span>
+          </div>
+          <p className="text-xl font-bold text-white">{formatLKR(poolBase)}</p>
+          <p className="text-[11px] text-slate-400">Up to 60 minutes base play</p>
+        </div>
+
+        {/* Pool 30m block */}
+        <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+            <CircleDot className="w-4 h-4 text-sky-400" />
+            <span>Pool — Extension Block</span>
+          </div>
+          <p className="text-xl font-bold text-white">{formatLKR(poolBlock)}</p>
+          <p className="text-[11px] text-slate-400">Per additional 30 minutes</p>
+        </div>
+
+        {/* PS4 1 Player */}
+        <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+            <Gamepad2 className="w-4 h-4 text-indigo-400" />
+            <span>PS4 — 1 Player</span>
+          </div>
+          <p className="text-xl font-bold text-white">{formatLKR(ps41p)}</p>
+          <p className="text-[11px] text-slate-400">Per hour rate (single player)</p>
+        </div>
+
+        {/* PS4 2 Players */}
+        <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+            <Gamepad2 className="w-4 h-4 text-indigo-400" />
+            <span>PS4 — 2 Players</span>
+          </div>
+          <p className="text-xl font-bold text-white">{formatLKR(ps42p)}</p>
+          <p className="text-[11px] text-slate-400">Per hour rate (two players)</p>
+        </div>
+      </div>
+
+      {/* Pricing Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Pool Table Schedule */}
+        <SectionCard
+          title="Pool Table Duration Schedule"
+          subtitle="Calculated automatically using current base and extension rates."
+          icon={CircleDot}
+        >
+          <div className="space-y-1.5 text-xs font-mono">
+            {[
+              ["30 min (within base)", 30],
+              ["1 hour (60 min)", 60],
+              ["1 hour 30 min (90 min)", 90],
+              ["2 hours (120 min)", 120],
+              ["2 hours 30 min (150 min)", 150],
+              ["3 hours (180 min)", 180],
+              ["3 hours 30 min (210 min)", 210],
+              ["4 hours (240 min)", 240],
+            ].map(([label, mins]) => {
+              const charge = calcPool(mins as number);
+              return (
+                <div
+                  key={label as string}
+                  className="flex justify-between py-2 px-3 rounded-lg"
+                  style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}
+                >
+                  <span className="text-slate-300 font-sans">{label}</span>
+                  <span className="font-bold text-white font-mono">{formatLKR(charge)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </SectionCard>
+
+        {/* PS4 Schedule & Soft Drinks */}
+        <div className="space-y-6">
+          <SectionCard
+            title="PS4 Gaming Schedule"
+            subtitle="Hourly rate scaled by duration."
+            icon={Gamepad2}
+          >
+            <div className="space-y-1.5 text-xs font-mono">
+              {[
+                ["1 hour (1 Player)", 1, ps41p],
+                ["2 hours (1 Player)", 2, ps41p * 2],
+                ["3 hours (1 Player)", 3, ps41p * 3],
+                ["1 hour (2 Players)", 1, ps42p],
+                ["2 hours (2 Players)", 2, ps42p * 2],
+                ["3 hours (2 Players)", 3, ps42p * 3],
+              ].map(([label, , total]) => (
+                <div
+                  key={label as string}
+                  className="flex justify-between py-2 px-3 rounded-lg"
+                  style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}
+                >
+                  <span className="text-slate-300 font-sans">{label}</span>
+                  <span className="font-bold text-white font-mono">{formatLKR(total as number)}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Soft Drinks & Beverages"
+            subtitle="Selling prices and stock costs are managed directly in inventory."
+            icon={Coffee}
+            action={
+              <Link
+                to="/drinks/inventory"
+                className="flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 font-medium"
+              >
+                <span>Open Drinks Catalog</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+            }
+          >
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Drink selling prices, purchase costs, and stock levels can be viewed and edited in the Soft Drinks Inventory page.
+            </p>
+          </SectionCard>
+        </div>
+      </div>
+
+      {/* Edit Prices Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div
+            className="w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-5"
+            style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
+          >
+            <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-400" />
+                <span>Edit Operating Prices</span>
+              </h3>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRates} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Pool Base Rate (Rs.)
+                  </label>
+                  <span className="text-[11px] text-slate-400 block mb-1.5">First 60 mins</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={poolBaseRupees}
+                    onChange={(e) => setPoolBaseRupees(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 rounded-lg text-sm font-semibold bg-slate-900 border border-slate-700 text-white focus:border-sky-400 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Pool Extension Block (Rs.)
+                  </label>
+                  <span className="text-[11px] text-slate-400 block mb-1.5">Per 30 mins after 60 mins</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={poolBlockRupees}
+                    onChange={(e) => setPoolBlockRupees(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 rounded-lg text-sm font-semibold bg-slate-900 border border-slate-700 text-white focus:border-sky-400 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    PS4 1 Player Rate (Rs./hr)
+                  </label>
+                  <span className="text-[11px] text-slate-400 block mb-1.5">Per hour</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={ps41pRupees}
+                    onChange={(e) => setPs41pRupees(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 rounded-lg text-sm font-semibold bg-slate-900 border border-slate-700 text-white focus:border-sky-400 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    PS4 2 Players Rate (Rs./hr)
+                  </label>
+                  <span className="text-[11px] text-slate-400 block mb-1.5">Per hour</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={ps42pRupees}
+                    onChange={(e) => setPs42pRupees(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 rounded-lg text-sm font-semibold bg-slate-900 border border-slate-700 text-white focus:border-sky-400 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Admin Authorization section */}
+              <div
+                className="p-4 rounded-xl space-y-3 mt-4"
+                style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}
+              >
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+                  <Shield className="w-4 h-4" />
+                  <span>Administrator Authorization Required</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Admin Username</label>
+                    <input
+                      type="text"
+                      value={adminUser}
+                      onChange={(e) => setAdminUser(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 rounded-lg text-xs bg-slate-800 border border-slate-700 text-white outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Admin Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPass ? "text" : "password"}
+                        value={adminPass}
+                        onChange={(e) => setAdminPass(e.target.value)}
+                        required
+                        placeholder="Enter password"
+                        className="w-full px-3 py-2 pr-9 rounded-lg text-xs bg-slate-800 border border-slate-700 text-white outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass((v) => !v)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                      >
+                        {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateRatesMutation.isPending}
+                  className="px-5 py-2 rounded-lg text-xs font-semibold shadow-md cursor-pointer disabled:opacity-50"
+                  style={{ backgroundColor: "#38BDF8", color: "#0F172A" }}
+                >
+                  {updateRatesMutation.isPending ? "Saving Changes…" : "Save New Rates"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Tab 2: Security & Credentials ───────────────────────────────────────── */
+
+const SecurityTab: React.FC = () => {
+  const { logout } = useAuth();
+  const [passMsg, setPassMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pinMsg, setPinMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Password fields
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [showCurPass, setShowCurPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [passLoading, setPassLoading] = useState(false);
+
+  // PIN fields
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassMsg(null);
+    if (newPass.length < 6) {
+      setPassMsg({ type: "error", text: "New password must be at least 6 characters long." });
+      return;
+    }
+    setPassLoading(true);
+    try {
+      await api.auth.changePassword(currentPass, newPass, newUsername.trim() || undefined);
+      setPassMsg({
+        type: "success",
+        text: "Password updated successfully. Logging out in 2 seconds…",
+      });
       setTimeout(() => logout(), 2000);
-    } catch {
-      setMsg({ type: "error", text: "Network error. Make sure the backend is running." });
+    } catch (err: any) {
+      setPassMsg({ type: "error", text: err.message || "Failed to change password. Please verify current password." });
     } finally {
-      setLoading(false);
+      setPassLoading(false);
+    }
+  };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinMsg(null);
+    if (newPin !== confirmPin) {
+      setPinMsg({ type: "error", text: "New PIN and confirmation PIN do not match." });
+      return;
+    }
+    setPinLoading(true);
+    try {
+      await api.auth.changePin(currentPin, newPin);
+      setPinMsg({ type: "success", text: "Edit-Authorization PIN changed successfully." });
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
+    } catch (err: any) {
+      setPinMsg({ type: "error", text: err.message || "Failed to change PIN. Verify current PIN." });
+    } finally {
+      setPinLoading(false);
     }
   };
 
   const inputStyle = {
-    backgroundColor: "#0F172A", border: "1px solid #475569", color: "#F8FAFC",
-    borderRadius: "6px", padding: "8px 10px", fontSize: "13px", width: "100%", outline: "none",
+    backgroundColor: "#0F172A",
+    border: "1px solid #475569",
+    color: "#F8FAFC",
+    borderRadius: "8px",
+    padding: "9px 12px",
+    fontSize: "13px",
+    width: "100%",
+    outline: "none",
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {msg && <Alert type={msg.type} message={msg.text} onClose={() => setMsg(null)} />}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: "#94A3B8" }}>Current Password</label>
-          <div className="relative">
-            <input
-              type={showCur ? "text" : "password"}
-              value={current}
-              onChange={e => setCurrent(e.target.value)}
-              required
-              placeholder="Current password"
-              style={{ ...inputStyle, paddingRight: "36px" }}
-              onFocus={e => (e.target.style.borderColor = "#38BDF8")}
-              onBlur={e => (e.target.style.borderColor = "#475569")}
-            />
-            <button type="button" onClick={() => setShowCur(v => !v)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2" style={{ color: "#64748B" }}>
-              {showCur ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: "#94A3B8" }}>New Password</label>
-          <div className="relative">
-            <input
-              type={showNew ? "text" : "password"}
-              value={newPass}
-              onChange={e => setNewPass(e.target.value)}
-              required
-              minLength={6}
-              placeholder="6+ characters"
-              style={{ ...inputStyle, paddingRight: "36px" }}
-              onFocus={e => (e.target.style.borderColor = "#38BDF8")}
-              onBlur={e => (e.target.style.borderColor = "#475569")}
-            />
-            <button type="button" onClick={() => setShowNew(v => !v)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2" style={{ color: "#64748B" }}>
-              {showNew ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: "#94A3B8" }}>New Username <span style={{ color: "#475569" }}>(optional)</span></label>
-          <input
-            type="text"
-            value={newUser}
-            onChange={e => setNewUser(e.target.value)}
-            placeholder="Leave blank to keep current"
-            style={inputStyle}
-            onFocus={e => (e.target.style.borderColor = "#38BDF8")}
-            onBlur={e => (e.target.style.borderColor = "#475569")}
-          />
-        </div>
-      </div>
-      <button
-        type="submit"
-        disabled={loading || !current || !newPass}
-        className="px-4 py-2 rounded-md text-xs font-medium transition-fast disabled:opacity-50"
-        style={{ backgroundColor: "#38BDF8", color: "#0F172A" }}
-        onMouseEnter={e => { if (!loading) (e.currentTarget.style.backgroundColor = "#7DD3FC"); }}
-        onMouseLeave={e => { if (!loading) (e.currentTarget.style.backgroundColor = "#38BDF8"); }}
+    <div className="space-y-6">
+      {/* Change Password */}
+      <SectionCard
+        title="Change Admin Password"
+        subtitle="Update login credentials for administrative access."
+        icon={Lock}
       >
-        {loading ? "Saving…" : "Change Password"}
-      </button>
-      <p className="text-xs" style={{ color: "#475569" }}>
-        You will be signed out automatically after a successful password change.
-      </p>
-    </form>
+        {passMsg && <AlertBanner type={passMsg.type} message={passMsg.text} onClose={() => setPassMsg(null)} />}
+
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Current Password</label>
+              <div className="relative">
+                <input
+                  type={showCurPass ? "text" : "password"}
+                  value={currentPass}
+                  onChange={(e) => setCurrentPass(e.target.value)}
+                  required
+                  placeholder="Enter current password"
+                  style={{ ...inputStyle, paddingRight: "38px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurPass((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  {showCurPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">New Password</label>
+              <div className="relative">
+                <input
+                  type={showNewPass ? "text" : "password"}
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Min 6 characters"
+                  style={{ ...inputStyle, paddingRight: "38px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                New Username <span className="text-slate-500">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Leave blank to keep current"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-slate-500">
+              For security, you will be signed out immediately after a successful password change.
+            </p>
+            <button
+              type="submit"
+              disabled={passLoading || !currentPass || !newPass}
+              className="px-5 py-2.5 rounded-lg text-xs font-semibold shadow-md cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: "#38BDF8", color: "#0F172A" }}
+            >
+              {passLoading ? "Updating…" : "Update Password"}
+            </button>
+          </div>
+        </form>
+      </SectionCard>
+
+      {/* Change Edit-Auth PIN */}
+      <SectionCard
+        title="Edit-Authorization PIN"
+        subtitle="Used across the ERP to authorize session adjustments, retroactive edits, and sale voids."
+        icon={KeyRound}
+      >
+        {pinMsg && <AlertBanner type={pinMsg.type} message={pinMsg.text} onClose={() => setPinMsg(null)} />}
+
+        <form onSubmit={handlePinSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Current PIN</label>
+              <input
+                type={showPin ? "text" : "password"}
+                value={currentPin}
+                onChange={(e) => setCurrentPin(e.target.value)}
+                required
+                placeholder="Enter current PIN"
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">New PIN</label>
+              <input
+                type={showPin ? "text" : "password"}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                required
+                placeholder="e.g. 4-6 digits"
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Confirm New PIN</label>
+              <input
+                type={showPin ? "text" : "password"}
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value)}
+                required
+                placeholder="Re-enter new PIN"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => setShowPin((v) => !v)}
+              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+            >
+              {showPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              <span>{showPin ? "Hide PIN digits" : "Show PIN digits"}</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={pinLoading || !currentPin || !newPin || newPin !== confirmPin}
+              className="px-5 py-2.5 rounded-lg text-xs font-semibold shadow-md cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: "#38BDF8", color: "#0F172A" }}
+            >
+              {pinLoading ? "Saving PIN…" : "Change Authorization PIN"}
+            </button>
+          </div>
+        </form>
+      </SectionCard>
+    </div>
   );
 };
 
-/* ── Main Page ──────────────────────────────────────────────────────────── */
+/* ── Tab 3: Backup & Recovery ────────────────────────────────────────────── */
 
-export const SettingsPage: React.FC = () => {
+const BackupTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [backupMsg, setBackupMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const { data: health, isLoading: isHealthLoading } = useQuery({
-    queryKey: ["health"],
-    queryFn: () => api.getHealth(),
-  });
-
-  const { data: info, isLoading: isInfoLoading } = useQuery({
-    queryKey: ["info"],
-    queryFn: () => api.getSystemInfo(),
-  });
-
-  const { data: backups = [] } = useQuery({
+  const { data: backups = [], isLoading } = useQuery<BackupSnapshot[]>({
     queryKey: ["backups"],
     queryFn: () => api.backup.list(),
   });
 
   const backupMutation = useMutation({
-    mutationFn: () => api.backup.create("Manual snapshot from Settings"),
+    mutationFn: () => api.backup.create("Manual snapshot from Pool Town Settings"),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["backups"] });
-      setBackupMsg({ type: "success", text: `Snapshot created: ${data.filename} (${(data.size_bytes / 1024).toFixed(1)} KB) — integrity verified.` });
+      setBackupMsg({
+        type: "success",
+        text: `Backup snapshot created: ${data.filename} (${(data.size_bytes / 1024).toFixed(1)} KB) — integrity verified.`,
+      });
     },
     onError: (err: any) => {
       setBackupMsg({ type: "error", text: err.message || "Failed to create backup." });
@@ -202,225 +759,164 @@ export const SettingsPage: React.FC = () => {
     mutationFn: (filename: string) => api.backup.restore(filename),
     onSuccess: (data) => {
       queryClient.invalidateQueries();
-      setBackupMsg({ type: "success", text: `Restored from ${data.restored_from}. Pre-restore safeguard: ${data.safeguard_backup}` });
+      setBackupMsg({
+        type: "success",
+        text: `Restored successfully from ${data.restored_from}. Safeguard snapshot created: ${data.safeguard_backup}`,
+      });
     },
     onError: (err: any) => {
-      setBackupMsg({ type: "error", text: err.message || "Failed to restore." });
+      setBackupMsg({ type: "error", text: err.message || "Failed to restore backup snapshot." });
     },
   });
 
   return (
     <div className="space-y-6">
-      {/* Page title */}
-      <div>
-        <h2 className="text-lg font-semibold" style={{ color: "#F8FAFC" }}>Settings</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>
-          Business configuration, security, and system status
-        </p>
-      </div>
+      {backupMsg && (
+        <AlertBanner type={backupMsg.type} message={backupMsg.text} onClose={() => setBackupMsg(null)} />
+      )}
 
-      {/* Status row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          {
-            icon: Server, label: "System Status", iconColor: "#22C55E",
-            value: isHealthLoading ? "Checking…" : health?.status === "healthy" ? "Online" : "Offline",
-            valueColor: health?.status === "healthy" ? "#22C55E" : "#EF4444",
-            sub: `Version ${health?.version || "1.0.0"}`,
-          },
-          {
-            icon: Database, label: "Database", iconColor: "#38BDF8",
-            value: "Connected", valueColor: "#22C55E",
-            sub: "Local SQLite · Data stored on this computer",
-          },
-          {
-            icon: ShieldCheck, label: "Financial Integrity", iconColor: "#A78BFA",
-            value: "Protected", valueColor: "#22C55E",
-            sub: "Integer paise storage · No floating-point rounding",
-          },
-        ].map(({ icon: Icon, label, iconColor, value, valueColor, sub }) => (
-          <div key={label} className="rounded-lg p-4" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Icon className="w-4 h-4" style={{ color: iconColor }} />
-              <p className="text-xs font-medium" style={{ color: "#94A3B8" }}>{label}</p>
-            </div>
-            <p className="text-lg font-bold" style={{ color: valueColor }}>{value}</p>
-            <p className="text-xs mt-1" style={{ color: "#64748B" }}>{sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Business profile */}
-      <Section title="Business Profile" subtitle="Core settings and configured accounts.">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <InfoTile label="Business Name" value={isInfoLoading ? "Loading…" : (info?.business_name || "Billiard Hall")} />
-          <InfoTile label="Currency" value={`${info?.currency || "LKR"} (${info?.currency_symbol || "Rs."})`} sub="Sri Lankan Rupees" />
-          <InfoTile label="Records From" value={info?.historical_start_date || "2026-01-01"} sub="Earliest transaction date" />
-          <InfoTile label="Accounts" value={`${info?.accounts_configured ?? "—"} configured`} sub="Full chart of accounts" />
-        </div>
-
-        {/* Partners — shown only in Settings, not on dashboard */}
-        {info?.owners && info.owners.length > 0 && (
-          <div className="pt-2">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} />
-              <p className="text-xs font-medium" style={{ color: "#94A3B8" }}>Business Partners & Profit Allocation</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {info.owners.map(owner => (
-                <div key={owner.id} className="flex items-center justify-between p-3 rounded-md"
-                  style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}>
-                  <span className="text-xs font-medium" style={{ color: "#F8FAFC" }}>{owner.name}</span>
-                  <span className="text-xs font-semibold font-mono" style={{ color: "#38BDF8" }}>
-                    {owner.profit_share_percent}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs mt-2" style={{ color: "#475569" }}>
-              40% of net profit is retained in the savings reserve. Profit allocation must be explicitly approved before any distribution.
-            </p>
-          </div>
-        )}
-      </Section>
-
-      {/* Pricing reference */}
-      <Section title="Pricing Rules" subtitle="Configured session pricing for reference. Prices apply to new sessions only.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Pool */}
-          <div className="rounded-md p-4 space-y-3" style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}>
-            <div className="flex items-center gap-2">
-              <CircleDot className="w-3.5 h-3.5" style={{ color: "#38BDF8" }} />
-              <p className="text-xs font-semibold" style={{ color: "#38BDF8" }}>Pool Table</p>
-            </div>
-            <p className="text-xs" style={{ color: "#64748B" }}>First hour: Rs. 500 · Each extra 30 min: Rs. 300</p>
-            <div className="space-y-1 text-xs font-mono">
-              {[["1 hour","500"],["1½ hours","800"],["2 hours","1,000"],["2½ hours","1,300"],["3 hours","1,500"],["3½ hours","1,800"],["4 hours","2,000"]].map(([d,p]) => (
-                <div key={d} className="flex justify-between">
-                  <span style={{ color: "#94A3B8" }}>{d}</span>
-                  <span className="font-semibold" style={{ color: "#F8FAFC" }}>Rs. {p}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* PS4 */}
-          <div className="rounded-md p-4 space-y-3" style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}>
-            <div className="flex items-center gap-2">
-              <Gamepad2 className="w-3.5 h-3.5" style={{ color: "#818CF8" }} />
-              <p className="text-xs font-semibold" style={{ color: "#818CF8" }}>PS4 Gaming</p>
-            </div>
-            <p className="text-xs" style={{ color: "#64748B" }}>Charged per full hour</p>
-            <div className="space-y-1 text-xs font-mono">
-              {[["1 player · 1 hr","400"],["1 player · 2 hrs","800"],["1 player · 3 hrs","1,200"],["1 player · 4 hrs","1,600"],
-                ["2 players · 1 hr","500"],["2 players · 2 hrs","1,000"],["2 players · 3 hrs","1,500"],["2 players · 4 hrs","2,000"]].map(([d,p]) => (
-                <div key={d} className="flex justify-between">
-                  <span style={{ color: "#94A3B8" }}>{d}</span>
-                  <span className="font-semibold" style={{ color: "#F8FAFC" }}>Rs. {p}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Soft Drinks */}
-          <div className="rounded-md p-4 space-y-3" style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}>
-            <div className="flex items-center gap-2">
-              <Coffee className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} />
-              <p className="text-xs font-semibold" style={{ color: "#F59E0B" }}>Soft Drinks</p>
-            </div>
-            <p className="text-xs" style={{ color: "#64748B" }}>
-              Prices are set per product in the Soft Drinks Inventory section. Each flavour has its own purchase cost and selling price.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      {/* Change Password */}
-      <Section title="Change Password" subtitle="Update your admin username and password. You will be signed out after a successful change.">
-        <div className="flex items-center gap-2 mb-2">
-          <Lock className="w-3.5 h-3.5" style={{ color: "#38BDF8" }} />
-          <p className="text-xs" style={{ color: "#94A3B8" }}>Enter your current password to make changes.</p>
-        </div>
-        <ChangePasswordForm />
-      </Section>
-
-      {/* Backup */}
-      <Section title="Database Backup & Restore" subtitle="Create and restore point-in-time snapshots of the database.">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <KeyRound className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} />
-            <p className="text-xs" style={{ color: "#94A3B8" }}>
-              Backups are stored locally. A safeguard snapshot is created automatically before any restore.
-            </p>
-          </div>
+      {/* Snapshot creation card */}
+      <SectionCard
+        title="Create Database Snapshot"
+        subtitle="Generates an isolated, atomic copy of billiard.db in the backend backups directory."
+        icon={Database}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+            Snapshots capture all tables, ledger transactions, player histories, and rate configurations in an atomic state.
+          </p>
           <button
             onClick={() => backupMutation.mutate()}
             disabled={backupMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium transition-fast disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold shadow-md transition-fast disabled:opacity-50 cursor-pointer whitespace-nowrap"
             style={{ backgroundColor: "#38BDF8", color: "#0F172A" }}
-            onMouseEnter={e => { if (!backupMutation.isPending) (e.currentTarget.style.backgroundColor = "#7DD3FC"); }}
-            onMouseLeave={e => { if (!backupMutation.isPending) (e.currentTarget.style.backgroundColor = "#38BDF8"); }}
           >
-            <Database className="w-3.5 h-3.5" />
-            {backupMutation.isPending ? "Creating…" : "Create Backup Now"}
+            <Database className="w-4 h-4" />
+            <span>{backupMutation.isPending ? "Creating Snapshot…" : "Create Backup Snapshot"}</span>
           </button>
         </div>
+      </SectionCard>
 
-        {backupMsg && (
-          <Alert type={backupMsg.type} message={backupMsg.text} onClose={() => setBackupMsg(null)} />
-        )}
-
-        {backups.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-xs rounded-md"
-            style={{ backgroundColor: "#0F172A", border: "1px solid #334155", color: "#475569" }}>
-            No backups yet. Click "Create Backup Now" to create the first snapshot.
+      {/* Existing snapshots list */}
+      <SectionCard
+        title="Available Backup Snapshots"
+        subtitle="Stored in ./backend/backups with cryptographic SHA-256 integrity hashes."
+        badge={`${backups.length} snapshots`}
+      >
+        {isLoading ? (
+          <div className="py-8 text-center text-xs text-slate-400">Scanning backups…</div>
+        ) : backups.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-500">
+            No backup snapshots created yet. Click above to create one.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-md" style={{ border: "1px solid #334155" }}>
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ backgroundColor: "#0F172A", borderBottom: "1px solid #334155" }}>
-                  {["Filename","Created","Size","Status","Action"].map(h => (
-                    <th key={h} className="py-2.5 px-3 text-left font-medium" style={{ color: "#64748B" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {backups.map(b => (
-                  <tr key={b.filename} className="table-row-hover" style={{ borderBottom: "1px solid #1E293B" }}>
-                    <td className="py-2.5 px-3 font-mono" style={{ color: "#F8FAFC" }}>{b.filename}</td>
-                    <td className="py-2.5 px-3 font-mono" style={{ color: "#94A3B8" }}>
-                      {b.created_at.replace("T"," ").substring(0,19)}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono" style={{ color: "#94A3B8" }}>
+          <div className="space-y-2">
+            {backups.map((b) => (
+              <div
+                key={b.filename}
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-lg gap-3"
+                style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-sky-400" />
+                    <span className="text-xs font-mono font-medium text-slate-200">{b.filename}</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
                       {(b.size_bytes / 1024).toFixed(1)} KB
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded text-[11px] font-medium" style={{ backgroundColor: "rgba(34,197,94,0.15)", color: "#22C55E", border: "1px solid rgba(34,197,94,0.3)" }}>
-                        Verified ✓
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Restore from "${b.filename}"?\n\nA safeguard backup will be created automatically before the restore.`)) {
-                            restoreMutation.mutate(b.filename);
-                          }
-                        }}
-                        disabled={restoreMutation.isPending}
-                        className="px-2.5 py-1 rounded text-[11px] font-medium transition-fast disabled:opacity-50"
-                        style={{ backgroundColor: "#334155", color: "#94A3B8" }}
-                        onMouseEnter={e => { e.currentTarget.style.color = "#F8FAFC"; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = "#94A3B8"; }}
-                      >
-                        Restore
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Created: {new Date(b.created_at).toLocaleString()} · {b.note || "No description"}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Are you sure you want to restore "${b.filename}"? A safeguard backup of the current database will be created first.`
+                      )
+                    ) {
+                      restoreMutation.mutate(b.filename);
+                    }
+                  }}
+                  disabled={restoreMutation.isPending}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-amber-300 hover:bg-amber-500/10 border border-amber-500/30 transition-fast disabled:opacity-50 cursor-pointer self-start sm:self-auto"
+                >
+                  {restoreMutation.isPending ? "Restoring…" : "Restore from this Snapshot"}
+                </button>
+              </div>
+            ))}
           </div>
         )}
-      </Section>
+      </SectionCard>
+    </div>
+  );
+};
+
+/* ── Main SettingsPage Shell ────────────────────────────────────────────── */
+
+type TabKey = "pricing" | "security" | "backup";
+
+export const SettingsPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabKey>("pricing");
+
+  const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
+    { key: "pricing", label: "Pricing & Rates", icon: CircleDot },
+    { key: "security", label: "Security & Passwords", icon: Shield },
+    { key: "backup", label: "Backup & Restore", icon: Database },
+  ];
+
+  return (
+    <div className="space-y-6 pb-12 font-sans">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">
+            Pool Town Settings
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Operating rates, administrative credentials, and database backups
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-800">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
+              style={
+                isActive
+                  ? {
+                      backgroundColor: "#38BDF8",
+                      color: "#0F172A",
+                      boxShadow: "0 4px 12px rgba(56, 189, 248, 0.25)",
+                    }
+                  : {
+                      backgroundColor: "transparent",
+                      color: "#94A3B8",
+                    }
+              }
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Panels */}
+      <div>
+        {activeTab === "pricing" && <PricingTab />}
+        {activeTab === "security" && <SecurityTab />}
+        {activeTab === "backup" && <BackupTab />}
+      </div>
     </div>
   );
 };

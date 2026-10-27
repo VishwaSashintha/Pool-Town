@@ -1,12 +1,25 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, FileText, PiggyBank, Users, Calendar } from "lucide-react";
+import { TrendingUp, FileText, PiggyBank, Users, Calendar, FileSpreadsheet } from "lucide-react";
 import { api } from "@/api/client";
 import { MoneyDisplay } from "@/components/common/MoneyDisplay";
 import { formatLKR } from "@/lib/money";
 
 export const ReportsPage: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>("2026-01");
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      const [year, month] = selectedMonth ? selectedMonth.split("-").map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
+      await api.reports.downloadExport("monthly", { year, month });
+    } catch (err: any) {
+      alert(err.message || "Failed to download Excel file");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   const { data: poolSessions = [] } = useQuery({
     queryKey: ["pool-sessions-report"],
@@ -62,23 +75,35 @@ export const ReportsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Month Selector */}
-        <div className="flex items-center gap-3 p-2 rounded-xl border border-border/70 bg-card/40 glass-panel">
-          <Calendar className="h-4 w-4 text-emerald-400" />
-          <span className="text-xs text-muted-foreground">Period:</span>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="px-2.5 py-1 rounded bg-secondary/50 border border-border text-xs font-mono text-foreground"
-          />
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Month Selector */}
+          <div className="flex items-center gap-3 p-2 rounded-xl border border-border/70 bg-card/40 glass-panel">
+            <Calendar className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs text-muted-foreground">Period:</span>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-2.5 py-1 rounded bg-secondary/50 border border-border text-xs font-mono text-foreground"
+            />
+            <button
+              onClick={() => setSelectedMonth("")}
+              className={`text-xs px-2 py-1 rounded transition ${
+                !selectedMonth ? "bg-emerald-600/30 text-emerald-300" : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              All-Time
+            </button>
+          </div>
+
           <button
-            onClick={() => setSelectedMonth("")}
-            className={`text-xs px-2 py-1 rounded transition ${
-              !selectedMonth ? "bg-emerald-600/30 text-emerald-300" : "text-muted-foreground hover:text-white"
-            }`}
+            onClick={handleExportExcel}
+            disabled={isExportingExcel}
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-medium border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            title="Export Monthly Report to Excel (.xlsx)"
           >
-            All-Time
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <span>{isExportingExcel ? "Exporting..." : "Excel (.xlsx)"}</span>
           </button>
         </div>
       </div>
@@ -131,11 +156,11 @@ export const ReportsPage: React.FC = () => {
           </div>
           <div className="divide-y divide-border/40">
             <div className="p-3 flex justify-between hover:bg-secondary/20">
-              <span className="font-sans">4001 Pool Table Rental Income</span>
+              <span className="font-sans">Pool Table Rental Income</span>
               <span className="text-foreground">{formatLKR(totalPoolPaise)}</span>
             </div>
             <div className="p-3 flex justify-between hover:bg-secondary/20">
-              <span className="font-sans">4002 PS4 Gaming Station Income</span>
+              <span className="font-sans">PS4 Gaming Station Income</span>
               <span className="text-foreground">{formatLKR(totalPS4Paise)}</span>
             </div>
             <div className="p-3 flex justify-between font-bold bg-secondary/20 text-emerald-400">
@@ -181,7 +206,7 @@ export const ReportsPage: React.FC = () => {
             </div>
           </div>
           <span className="text-xs px-2.5 py-1 rounded bg-amber-500/20 text-amber-400 font-medium">
-            Pending Owner Approval (D-005)
+            Pending Owner Approval
           </span>
         </div>
 
@@ -191,7 +216,7 @@ export const ReportsPage: React.FC = () => {
             <div className="text-xl font-bold font-mono text-white">
               <MoneyDisplay paise={savingsSharePaise} />
             </div>
-            <p className="text-[11px] text-muted-foreground">Retained in business account 1003</p>
+            <p className="text-[11px] text-muted-foreground">Retained in business savings reserve</p>
           </div>
 
           <div className="p-4 rounded-xl border border-border/80 bg-secondary/30 space-y-1">
@@ -199,7 +224,7 @@ export const ReportsPage: React.FC = () => {
             <div className="text-xl font-bold font-mono text-emerald-400">
               <MoneyDisplay paise={akashSharePaise} />
             </div>
-            <p className="text-[11px] text-muted-foreground">Partner capital account 3001</p>
+            <p className="text-[11px] text-muted-foreground">Partner capital account</p>
           </div>
 
           <div className="p-4 rounded-xl border border-border/80 bg-secondary/30 space-y-1">
@@ -207,18 +232,18 @@ export const ReportsPage: React.FC = () => {
             <div className="text-xl font-bold font-mono text-emerald-400">
               <MoneyDisplay paise={pasanSharePaise} />
             </div>
-            <p className="text-[11px] text-muted-foreground">Partner capital account 3002</p>
+            <p className="text-[11px] text-muted-foreground">Partner capital account</p>
           </div>
 
           <div className="p-4 rounded-xl border border-border/80 bg-secondary/30 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground">Vishwa (20%)</span>
-              <span className="text-[10px] text-muted-foreground font-mono">+rem (D-009)</span>
+              <span className="text-[10px] text-muted-foreground font-mono">+remainder</span>
             </div>
             <div className="text-xl font-bold font-mono text-emerald-400">
               <MoneyDisplay paise={vishwaSharePaise} />
             </div>
-            <p className="text-[11px] text-muted-foreground">Partner capital account 3003</p>
+            <p className="text-[11px] text-muted-foreground">Partner capital account</p>
           </div>
         </div>
       </div>

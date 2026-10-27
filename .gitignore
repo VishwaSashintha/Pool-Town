@@ -23,10 +23,16 @@ backend/alembic.ini.bak
 *.db
 *.sqlite
 *.sqlite3
-data/billiard.db
-data/*.db
+*.db-shm
+*.db-wal
+*.db-journal
+backend/data/*.db*
+backend/data/backups/
+data/*.db*
+data/backups/
 
 # Backups (never commit — too large)
+backups/
 backups/*.db
 backups/*.zip
 

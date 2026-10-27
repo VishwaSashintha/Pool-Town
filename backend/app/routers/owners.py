@@ -10,18 +10,25 @@ from app.models.owners import (
     Owner, OwnerTransaction, OwnerTransactionType,
     Loan, LoanTransaction, LoanType, LoanStatus, LoanTransactionType,
     ProfitAllocation, ProfitAllocationLine,
+    OwnerCollection, OwnerCollectionStatus,
 )
 from app.models.journal import JournalEntry, JournalLine, JournalEntryStatus
 from app.schemas.owners import (
     OwnerResponse,
     OwnerTransactionCreate,
     OwnerTransactionResponse,
+    PartnerMonthlyDetail,
+    PartnerMonthlyDistributionSummary,
     LoanCreate,
     LoanResponse,
     LoanRepaymentCreate,
     LoanTransactionResponse,
     ProfitAllocationPreview,
     ProfitAllocationPost,
+    OwnerCollectionCreate,
+    OwnerCollectionConfirm,
+    OwnerCollectionUpdate,
+    OwnerCollectionResponse,
 )
 from app.services.journal import JournalService, JournalLineInput
 from app.utils.money import allocate_profit
@@ -73,6 +80,90 @@ def list_owners(db: Session = Depends(get_db)):
     return results
 
 
+@router.get("/monthly-summary", response_model=PartnerMonthlyDistributionSummary)
+def get_monthly_distribution_summary(
+    year: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns monthly eligible net profit, 40% business savings allocation, and 20% allocation
+    for each partner, along with recorded advances, distributions, and remaining payable balances.
+    """
+    preview = preview_profit_allocation(year=year, month=month, db=db)
+    net_profit = preview.net_distributable_profit_paise
+    savings_allocation = preview.savings_share_paise
+
+    partner_shares = {
+        "akash": preview.akash_share_paise,
+        "pasan": preview.pasan_share_paise,
+        "vishwa": preview.vishwa_share_paise,
+    }
+
+    owners = db.query(Owner).filter(Owner.is_active == True).order_by(Owner.id).all()
+    partner_details: list[PartnerMonthlyDetail] = []
+
+    for o in owners:
+        name_lower = o.name.strip().lower()
+        if "akash" in name_lower:
+            alloc_paise = partner_shares.get("akash", 0)
+        elif "pasan" in name_lower:
+            alloc_paise = partner_shares.get("pasan", 0)
+        elif "vishwa" in name_lower:
+            alloc_paise = partner_shares.get("vishwa", 0)
+        else:
+            alloc_paise = int(net_profit * (o.profit_share_bps / 10000))
+
+        capital_code = f"300{o.id}"
+        capital_bal = JournalService.get_account_balance(db, capital_code)
+
+        # Query advances for this partner and period
+        adv_query = db.query(func.coalesce(func.sum(OwnerTransaction.amount_paise), 0)).filter(
+            OwnerTransaction.owner_id == o.id,
+            OwnerTransaction.transaction_type == OwnerTransactionType.ADVANCE,
+            OwnerTransaction.period_year == year,
+            OwnerTransaction.period_month == month,
+        )
+        advances_paid = adv_query.scalar() or 0
+
+        # Query distributions paid for this partner and period
+        dist_query = db.query(func.coalesce(func.sum(OwnerTransaction.amount_paise), 0)).filter(
+            OwnerTransaction.owner_id == o.id,
+            OwnerTransaction.transaction_type.in_([OwnerTransactionType.DISTRIBUTION, OwnerTransactionType.WITHDRAWAL]),
+            OwnerTransaction.period_year == year,
+            OwnerTransaction.period_month == month,
+        )
+        distributions_paid = dist_query.scalar() or 0
+
+        remaining_payable = max(0, alloc_paise - advances_paid - distributions_paid)
+
+        partner_details.append(
+            PartnerMonthlyDetail(
+                owner_id=o.id,
+                owner_name=o.name,
+                profit_share_percent=f"{o.profit_share_bps / 100:.1f}%",
+                capital_balance_paise=capital_bal,
+                monthly_allocation_paise=alloc_paise,
+                advances_paid_paise=advances_paid,
+                distributions_paid_paise=distributions_paid,
+                remaining_payable_paise=remaining_payable,
+            )
+        )
+
+    return PartnerMonthlyDistributionSummary(
+        year=year,
+        month=month,
+        period_label=f"{year}-{month:02d}",
+        net_profit_paise=net_profit,
+        savings_allocation_paise=savings_allocation,
+        total_partner_allocations_paise=sum(p.monthly_allocation_paise for p in partner_details),
+        total_advances_paid_paise=sum(p.advances_paid_paise for p in partner_details),
+        total_distributions_paid_paise=sum(p.distributions_paid_paise for p in partner_details),
+        total_remaining_payable_paise=sum(p.remaining_payable_paise for p in partner_details),
+        partners=partner_details,
+    )
+
+
 @router.get("/transactions", response_model=list[OwnerTransactionResponse])
 def list_owner_transactions(
     owner_id: Optional[int] = Query(default=None),
@@ -100,6 +191,8 @@ def list_owner_transactions(
                 amount_paise=tx.amount_paise,
                 account_id=tx.account_id,
                 account_name=acct.name if acct else None,
+                period_year=tx.period_year,
+                period_month=tx.period_month,
                 description=tx.description,
                 notes=tx.notes,
                 created_at=tx.created_at,
@@ -112,11 +205,11 @@ def list_owner_transactions(
 def record_owner_transaction(payload: OwnerTransactionCreate, db: Session = Depends(get_db)):
     owner = db.query(Owner).filter(Owner.id == payload.owner_id).first()
     if not owner:
-        raise HTTPException(status_code=404, detail="Owner not found")
+        raise HTTPException(status_code=404, detail="Partner not found")
 
     bank_cash_acct = db.query(FinancialAccount).filter(FinancialAccount.id == payload.account_id).first()
-    if not bank_cash_acct or bank_cash_acct.code not in ("1001", "1002", "1003"):
-        raise HTTPException(status_code=400, detail="Must select a valid liquid treasury account (Cash, Bank, or Savings)")
+    if not bank_cash_acct or bank_cash_acct.code not in ("1001", "1002", "1003", "1004"):
+        raise HTTPException(status_code=400, detail="Must select a valid liquid account (Business Cash, Business Bank, Savings Account, or Savings Cash)")
 
     date_str = payload.transaction_date.strftime("%Y%m%d")
     count = db.query(OwnerTransaction).filter(OwnerTransaction.reference.like(f"OTX-{date_str}-%")).count()
@@ -128,6 +221,43 @@ def record_owner_transaction(payload: OwnerTransactionCreate, db: Session = Depe
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid transaction type: {payload.transaction_type}")
 
+    target_year = payload.period_year or payload.transaction_date.year
+    target_month = payload.period_month or payload.transaction_date.month
+
+    # If distribution, validate against remaining payable
+    if tx_type_enum == OwnerTransactionType.DISTRIBUTION:
+        preview = preview_profit_allocation(year=target_year, month=target_month, db=db)
+        name_lower = owner.name.strip().lower()
+        if "akash" in name_lower:
+            alloc = preview.akash_share_paise
+        elif "pasan" in name_lower:
+            alloc = preview.pasan_share_paise
+        elif "vishwa" in name_lower:
+            alloc = preview.vishwa_share_paise
+        else:
+            alloc = int(preview.net_distributable_profit_paise * (owner.profit_share_bps / 10000))
+
+        adv_paid = db.query(func.coalesce(func.sum(OwnerTransaction.amount_paise), 0)).filter(
+            OwnerTransaction.owner_id == owner.id,
+            OwnerTransaction.transaction_type == OwnerTransactionType.ADVANCE,
+            OwnerTransaction.period_year == target_year,
+            OwnerTransaction.period_month == target_month,
+        ).scalar() or 0
+
+        dist_paid = db.query(func.coalesce(func.sum(OwnerTransaction.amount_paise), 0)).filter(
+            OwnerTransaction.owner_id == owner.id,
+            OwnerTransaction.transaction_type.in_([OwnerTransactionType.DISTRIBUTION, OwnerTransactionType.WITHDRAWAL]),
+            OwnerTransaction.period_year == target_year,
+            OwnerTransaction.period_month == target_month,
+        ).scalar() or 0
+
+        remaining = max(0, alloc - adv_paid - dist_paid)
+        if payload.amount_paise > remaining:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Distribution amount of Rs. {payload.amount_paise / 100:,.2f} exceeds remaining payable allocation (Rs. {remaining / 100:,.2f}) for {target_year}-{target_month:02d}. Overpayments are not allowed.",
+            )
+
     tx = OwnerTransaction(
         reference=reference,
         owner_id=owner.id,
@@ -136,32 +266,36 @@ def record_owner_transaction(payload: OwnerTransactionCreate, db: Session = Depe
         amount_paise=payload.amount_paise,
         description=payload.description,
         account_id=bank_cash_acct.id,
+        period_year=target_year,
+        period_month=target_month,
         notes=payload.notes,
         created_by="Admin",
     )
     db.add(tx)
     db.flush()
 
-    # Determine journal lines based on transaction type:
     capital_code = f"300{owner.id}"
     dist_code = f"700{owner.id}"
 
     if tx_type_enum in (OwnerTransactionType.INITIAL_CAPITAL, OwnerTransactionType.ADDITIONAL_CAPITAL):
-        # DR Cash/Bank (1001/1002), CR Owner Capital (3001/3002/3003)
         lines = [
             JournalLineInput(bank_cash_acct.code, bank_cash_acct.name, True, payload.amount_paise),
             JournalLineInput(capital_code, f"Owner Capital — {owner.name}", False, payload.amount_paise),
         ]
-        desc = f"Capital Injection: {owner.name} via {bank_cash_acct.name}"
-    elif tx_type_enum in (OwnerTransactionType.WITHDRAWAL, OwnerTransactionType.DISTRIBUTION):
-        # DR Owner Distribution (7001/7002/7003), CR Cash/Bank (1001/1002)
+        desc = f"Capital Contribution: {owner.name} via {bank_cash_acct.name}"
+    elif tx_type_enum == OwnerTransactionType.ADVANCE:
         lines = [
             JournalLineInput(dist_code, f"Owner Distribution — {owner.name}", True, payload.amount_paise),
             JournalLineInput(bank_cash_acct.code, bank_cash_acct.name, False, payload.amount_paise),
         ]
-        desc = f"Owner Drawing/Distribution: {owner.name} from {bank_cash_acct.name}"
+        desc = f"Partner Advance: {owner.name} ({target_year}-{target_month:02d}) via {bank_cash_acct.name}"
+    elif tx_type_enum in (OwnerTransactionType.WITHDRAWAL, OwnerTransactionType.DISTRIBUTION):
+        lines = [
+            JournalLineInput(dist_code, f"Owner Distribution — {owner.name}", True, payload.amount_paise),
+            JournalLineInput(bank_cash_acct.code, bank_cash_acct.name, False, payload.amount_paise),
+        ]
+        desc = f"Monthly Distribution: {owner.name} ({target_year}-{target_month:02d}) from {bank_cash_acct.name}"
     else:
-        # Default capital adjustment
         lines = [
             JournalLineInput(bank_cash_acct.code, bank_cash_acct.name, True, payload.amount_paise),
             JournalLineInput(capital_code, f"Owner Capital — {owner.name}", False, payload.amount_paise),
@@ -191,6 +325,8 @@ def record_owner_transaction(payload: OwnerTransactionCreate, db: Session = Depe
         amount_paise=tx.amount_paise,
         account_id=bank_cash_acct.id,
         account_name=bank_cash_acct.name,
+        period_year=tx.period_year,
+        period_month=tx.period_month,
         description=tx.description,
         notes=tx.notes,
         created_at=tx.created_at,
@@ -604,3 +740,306 @@ def post_profit_allocation(payload: ProfitAllocationPost, db: Session = Depends(
         "reference": reference,
         "journal_reference": entry.reference,
     }
+
+
+# ==========================================
+# OWNER / PARTNER COLLECTION RECORDING
+# ==========================================
+
+@router.get("/collections", response_model=list[OwnerCollectionResponse])
+def list_owner_collections(
+    collector_name: Optional[str] = Query(default=None),
+    owner_id: Optional[int] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    start_date: Optional[date] = Query(default=None),
+    end_date: Optional[date] = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    query = db.query(OwnerCollection)
+    if collector_name:
+        query = query.filter(OwnerCollection.collector_name.ilike(f"%{collector_name.strip()}%"))
+    if owner_id:
+        query = query.filter(OwnerCollection.owner_id == owner_id)
+    if status:
+        query = query.filter(OwnerCollection.status == status)
+    if start_date:
+        query = query.filter(OwnerCollection.collection_date >= start_date)
+    if end_date:
+        query = query.filter(OwnerCollection.collection_date <= end_date)
+
+    collections = query.order_by(
+        desc(OwnerCollection.collection_date),
+        desc(OwnerCollection.id)
+    ).limit(limit).all()
+
+    results = []
+    for c in collections:
+        acct = db.query(FinancialAccount).filter(FinancialAccount.id == c.destination_account_id).first()
+        results.append(
+            OwnerCollectionResponse(
+                id=c.id,
+                reference=c.reference,
+                collector_name=c.collector_name,
+                owner_id=c.owner_id,
+                collection_date=c.collection_date,
+                amount_paise=c.amount_paise,
+                status=c.status.value if hasattr(c.status, "value") else str(c.status),
+                destination_account_id=c.destination_account_id,
+                destination_account_name=acct.name if acct else "Unknown Account",
+                source_category=c.source_category,
+                notes=c.notes,
+                created_by=c.created_by,
+                confirmed_at=c.confirmed_at,
+                confirmed_by=c.confirmed_by,
+                journal_entry_id=c.journal_entry_id,
+                created_at=c.created_at,
+            )
+        )
+    return results
+
+
+@router.post("/collections", response_model=OwnerCollectionResponse, status_code=201)
+def record_owner_collection(
+    payload: OwnerCollectionCreate,
+    db: Session = Depends(get_db),
+):
+    """
+    Record business money collected by an owner/partner (Akash, Pasan, Vishwa).
+    If amount is not known, sets status to PENDING_CONFIRMATION and does NOT modify financial balances.
+    If amount is known and confirmed, posts accounting entries appropriately without duplicating income.
+    """
+    dest_acct = db.query(FinancialAccount).filter(FinancialAccount.id == payload.destination_account_id).first()
+    if not dest_acct:
+        raise HTTPException(status_code=400, detail="Invalid destination financial account")
+
+    # Match owner if collector is one of the partners
+    owner_id = payload.owner_id
+    if not owner_id:
+        c_match = db.query(Owner).filter(Owner.name.ilike(f"%{payload.collector_name.strip()}%")).first()
+        if c_match:
+            owner_id = c_match.id
+
+    date_str = payload.collection_date.strftime("%Y%m%d")
+    count = db.query(OwnerCollection).filter(OwnerCollection.reference.like(f"COL-{date_str}-%")).count()
+    reference = f"COL-{date_str}-{count + 1:04d}"
+
+    is_unknown = payload.is_unknown_amount or (payload.amount_paise is None or payload.amount_paise <= 0)
+    status = OwnerCollectionStatus.PENDING_CONFIRMATION if is_unknown else OwnerCollectionStatus.CONFIRMED
+    amount_paise = None if is_unknown else payload.amount_paise
+
+    collection = OwnerCollection(
+        reference=reference,
+        collector_name=payload.collector_name.strip(),
+        owner_id=owner_id,
+        collection_date=payload.collection_date,
+        amount_paise=amount_paise,
+        status=status,
+        destination_account_id=dest_acct.id,
+        source_category=payload.source_category.strip(),
+        notes=payload.notes,
+        created_by="Admin",
+    )
+    db.add(collection)
+    db.flush()
+
+    # If confirmed with an amount, post appropriate accounting entry
+    journal_id = None
+    if status == OwnerCollectionStatus.CONFIRMED and amount_paise:
+        source_cat = payload.source_category.strip()
+        if source_cat == "Other Business Income":
+            lines = [
+                JournalLineInput(dest_acct.code, dest_acct.name, True, amount_paise),
+                JournalLineInput("4004", "Other Income", False, amount_paise),
+            ]
+            desc = f"Business Income Collected: {collection.collector_name} ({source_cat})"
+            entry = JournalService.post_entry(
+                db,
+                entry_date=payload.collection_date,
+                description=desc,
+                lines=lines,
+                source_type="owner_collection",
+                source_id=collection.id,
+                notes=payload.notes,
+            )
+            journal_id = entry.id
+        elif dest_acct.code == "1002" and source_cat in ("Existing Business Funds", "Pool Table Payments", "PS4 Payments", "Soft Drink Sales", "Other"):
+            # Cash collected and deposited into Main Bank account
+            lines = [
+                JournalLineInput("1002", "Main Bank Account", True, amount_paise),
+                JournalLineInput("1001", "Cash in Hand", False, amount_paise),
+            ]
+            desc = f"Partner Handover: {collection.collector_name} deposited {source_cat} funds to Bank"
+            entry = JournalService.post_entry(
+                db,
+                entry_date=payload.collection_date,
+                description=desc,
+                lines=lines,
+                source_type="owner_collection",
+                source_id=collection.id,
+                notes=payload.notes,
+            )
+            journal_id = entry.id
+        # When funds remain in Cash in Hand (1001) for session/drinks, no second revenue entry is posted!
+
+    collection.journal_entry_id = journal_id
+    db.commit()
+    db.refresh(collection)
+
+    return OwnerCollectionResponse(
+        id=collection.id,
+        reference=collection.reference,
+        collector_name=collection.collector_name,
+        owner_id=collection.owner_id,
+        collection_date=collection.collection_date,
+        amount_paise=collection.amount_paise,
+        status=collection.status.value,
+        destination_account_id=collection.destination_account_id,
+        destination_account_name=dest_acct.name,
+        source_category=collection.source_category,
+        notes=collection.notes,
+        created_by=collection.created_by,
+        confirmed_at=collection.confirmed_at,
+        confirmed_by=collection.confirmed_by,
+        journal_entry_id=collection.journal_entry_id,
+        created_at=collection.created_at,
+    )
+
+
+@router.post("/collections/{collection_id}/confirm", response_model=OwnerCollectionResponse)
+def confirm_owner_collection(
+    collection_id: int,
+    payload: OwnerCollectionConfirm,
+    db: Session = Depends(get_db),
+):
+    """
+    Confirm a pending collection with the exact amount discovered/counted.
+    Once confirmed, posts the accounting entry exactly once and updates financial balances.
+    """
+    collection = db.query(OwnerCollection).filter(OwnerCollection.id == collection_id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection record not found")
+
+    if collection.status == OwnerCollectionStatus.CONFIRMED:
+        raise HTTPException(status_code=400, detail="Collection is already confirmed")
+
+    if payload.amount_paise <= 0:
+        raise HTTPException(status_code=400, detail="Confirmed amount must be greater than zero")
+
+    dest_acct = db.query(FinancialAccount).filter(FinancialAccount.id == collection.destination_account_id).first()
+    if not dest_acct:
+        raise HTTPException(status_code=400, detail="Destination account not found")
+
+    collection.amount_paise = payload.amount_paise
+    collection.status = OwnerCollectionStatus.CONFIRMED
+    collection.confirmed_at = datetime.now(timezone.utc)
+    collection.confirmed_by = "Admin"
+    if payload.notes:
+        existing = collection.notes or ""
+        collection.notes = f"{existing} | Confirmed: {payload.notes}".strip(" | ")
+
+    # Post accounting entry once
+    journal_id = None
+    source_cat = collection.source_category.strip()
+    c_date = payload.confirmed_date or collection.collection_date
+
+    if source_cat == "Other Business Income":
+        lines = [
+            JournalLineInput(dest_acct.code, dest_acct.name, True, payload.amount_paise),
+            JournalLineInput("4004", "Other Income", False, payload.amount_paise),
+        ]
+        desc = f"Business Income Confirmed: {collection.collector_name} ({source_cat})"
+        entry = JournalService.post_entry(
+            db,
+            entry_date=c_date,
+            description=desc,
+            lines=lines,
+            source_type="owner_collection",
+            source_id=collection.id,
+            notes=collection.notes,
+        )
+        journal_id = entry.id
+    elif dest_acct.code == "1002" and source_cat in ("Existing Business Funds", "Pool Table Payments", "PS4 Payments", "Soft Drink Sales", "Other"):
+        lines = [
+            JournalLineInput("1002", "Main Bank Account", True, payload.amount_paise),
+            JournalLineInput("1001", "Cash in Hand", False, payload.amount_paise),
+        ]
+        desc = f"Partner Handover Confirmed: {collection.collector_name} deposited {source_cat} funds to Bank"
+        entry = JournalService.post_entry(
+            db,
+            entry_date=c_date,
+            description=desc,
+            lines=lines,
+            source_type="owner_collection",
+            source_id=collection.id,
+            notes=collection.notes,
+        )
+        journal_id = entry.id
+
+    collection.journal_entry_id = journal_id
+    db.commit()
+    db.refresh(collection)
+
+    return OwnerCollectionResponse(
+        id=collection.id,
+        reference=collection.reference,
+        collector_name=collection.collector_name,
+        owner_id=collection.owner_id,
+        collection_date=collection.collection_date,
+        amount_paise=collection.amount_paise,
+        status=collection.status.value,
+        destination_account_id=collection.destination_account_id,
+        destination_account_name=dest_acct.name,
+        source_category=collection.source_category,
+        notes=collection.notes,
+        created_by=collection.created_by,
+        confirmed_at=collection.confirmed_at,
+        confirmed_by=collection.confirmed_by,
+        journal_entry_id=collection.journal_entry_id,
+        created_at=collection.created_at,
+    )
+
+
+@router.put("/collections/{collection_id}", response_model=OwnerCollectionResponse)
+def update_owner_collection(
+    collection_id: int,
+    payload: OwnerCollectionUpdate,
+    db: Session = Depends(get_db),
+):
+    collection = db.query(OwnerCollection).filter(OwnerCollection.id == collection_id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection record not found")
+
+    if payload.notes is not None:
+        collection.notes = payload.notes
+    if payload.source_category:
+        collection.source_category = payload.source_category.strip()
+    if payload.destination_account_id:
+        dest_acct = db.query(FinancialAccount).filter(FinancialAccount.id == payload.destination_account_id).first()
+        if not dest_acct:
+            raise HTTPException(status_code=400, detail="Invalid destination account")
+        collection.destination_account_id = dest_acct.id
+
+    db.commit()
+    db.refresh(collection)
+    dest_acct = db.query(FinancialAccount).filter(FinancialAccount.id == collection.destination_account_id).first()
+
+    return OwnerCollectionResponse(
+        id=collection.id,
+        reference=collection.reference,
+        collector_name=collection.collector_name,
+        owner_id=collection.owner_id,
+        collection_date=collection.collection_date,
+        amount_paise=collection.amount_paise,
+        status=collection.status.value if hasattr(collection.status, "value") else str(collection.status),
+        destination_account_id=collection.destination_account_id,
+        destination_account_name=dest_acct.name if dest_acct else "Unknown Account",
+        source_category=collection.source_category,
+        notes=collection.notes,
+        created_by=collection.created_by,
+        confirmed_at=collection.confirmed_at,
+        confirmed_by=collection.confirmed_by,
+        journal_entry_id=collection.journal_entry_id,
+        created_at=collection.created_at,
+    )
+

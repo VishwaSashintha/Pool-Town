@@ -13,6 +13,7 @@ import {
   History,
   X,
   CreditCard,
+  FileSpreadsheet,
 } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { formatLKR, rupeesToPaise, paiseToRupees } from "@/lib/money";
@@ -23,6 +24,18 @@ export const LoansPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLoanForRepayment, setSelectedLoanForRepayment] = useState<Loan | null>(null);
   const [selectedLoanForHistory, setSelectedLoanForHistory] = useState<Loan | null>(null);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      await apiClient.reports.downloadExport("loans");
+    } catch (err: any) {
+      alert(err.message || "Failed to download Excel file");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   // Create Loan Form States
   const [lenderName, setLenderName] = useState("");
@@ -191,22 +204,33 @@ export const LoansPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
             <HandCoins className="w-6 h-6 text-indigo-400" />
-            Business Loans & Liabilities
+            Loans
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Track partner loans (2001), bank/third-party debts (2002), repayments, and interest expense
+            Manage money borrowed by the business, principal repayments, and interest expenses
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setShowCreateModal(true);
-            resetCreateForm();
-          }}
-          className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition flex items-center gap-2 shadow-sm self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" /> Record New Loan
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            onClick={handleExportExcel}
+            disabled={isExportingExcel || loans.length === 0}
+            className="px-3.5 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-sm font-medium border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            title="Export Loans to Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            {isExportingExcel ? "Exporting..." : "Excel (.xlsx)"}
+          </button>
+          <button
+            onClick={() => {
+              setShowCreateModal(true);
+              resetCreateForm();
+            }}
+            className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition flex items-center gap-2 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Record New Loan
+          </button>
+        </div>
       </div>
 
       {successMsg && (
@@ -263,9 +287,8 @@ export const LoansPage: React.FC = () => {
       <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 text-xs text-slate-400 flex items-start gap-3">
         <HandCoins className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
         <div>
-          <span className="font-semibold text-slate-200">Accounting Rule Reminder: </span>
-          Receiving a loan is NOT revenue — it credits Loan Payable (2001/2002). Repaying principal is NOT an expense —
-          it directly reduces loan liability. Only interest paid is booked as an expense (6020 Interest Expense).
+          <span className="font-semibold text-slate-200">Loan Principle: </span>
+          Receiving a loan increases cash and creates a loan liability. Repaying principal directly reduces loan liability, while interest paid is recorded as interest expense.
         </div>
       </div>
 
@@ -320,11 +343,11 @@ export const LoansPage: React.FC = () => {
                       <td className="py-3 px-4">
                         {loan.loan_type === "owner" ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                            Partner Loan (2001)
+                            Partner Loan
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                            Third Party (2002)
+                            Third Party Loan
                           </span>
                         )}
                       </td>
@@ -420,8 +443,8 @@ export const LoansPage: React.FC = () => {
                     onChange={e => setLoanType(e.target.value as "owner" | "external")}
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-indigo-500"
                   >
-                    <option value="owner">Partner Loan (2001)</option>
-                    <option value="external">Third Party / External (2002)</option>
+                    <option value="owner">Partner Loan</option>
+                    <option value="external">Third Party / Commercial Loan</option>
                   </select>
                 </div>
 
@@ -504,7 +527,7 @@ export const LoansPage: React.FC = () => {
                     .filter((a: FinancialAccount) => a.code === "1001" || a.code === "1002")
                     .map((a: FinancialAccount) => (
                       <option key={a.id} value={a.id}>
-                        {a.code} — {a.name}
+                        {a.code === "1001" ? "Business Cash" : "Business Bank"}
                       </option>
                     ))}
                 </select>
@@ -605,7 +628,7 @@ export const LoansPage: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
                   placeholder="0"
                 />
-                <p className="text-[11px] text-slate-500 mt-0.5">Debited to 6020 Interest Expense</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Recorded separately as loan interest expense</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -634,10 +657,18 @@ export const LoansPage: React.FC = () => {
                   >
                     <option value="">Select account...</option>
                     {accounts
-                      .filter((a: FinancialAccount) => a.code === "1001" || a.code === "1002")
+                      .filter((a: FinancialAccount) => ["1001", "1002", "1003", "1004"].includes(a.code))
                       .map((a: FinancialAccount) => (
                         <option key={a.id} value={a.id}>
-                          {a.name}
+                          {a.code === "1001"
+                            ? "Business Cash"
+                            : a.code === "1002"
+                            ? "Business Bank"
+                            : a.code === "1003"
+                            ? "Savings Bank"
+                            : a.code === "1004"
+                            ? "Savings Cash"
+                            : a.name}
                         </option>
                       ))}
                   </select>

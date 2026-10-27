@@ -262,3 +262,49 @@ class TestStandardDurations:
         for d in durations:
             assert "label" in d
             assert len(d["label"]) > 0
+
+
+class TestPricingApiEndpoints:
+    def test_get_and_update_rates_with_auth(self, db):
+        from app.routers.pricing import get_rates, update_rates, PricingRatesUpdate
+        from app.services.seed import seed_master_data
+        from app.routers.auth import ensure_default_credentials
+        from fastapi import HTTPException
+        seed_master_data(db)
+        ensure_default_credentials(db)
+
+        # 1. Fetch initial rates
+        initial = get_rates(db=db)
+        assert initial.pool_base_charge_paise == 50000
+        assert initial.ps4_1player_rate_paise == 40000
+
+        # 2. Unauthorized update fails
+        with pytest.raises(HTTPException) as exc_info:
+            update_rates(
+                payload=PricingRatesUpdate(
+                    admin_username="admin",
+                    admin_password="wrongpassword",
+                    pool_base_charge_paise=60000,
+                ),
+                db=db,
+            )
+        assert exc_info.value.status_code == 403
+
+        # 3. Authorized update succeeds
+        updated = update_rates(
+            payload=PricingRatesUpdate(
+                admin_username="admin",
+                admin_password="admin123",
+                pool_base_charge_paise=60000,
+                ps4_1player_rate_paise=45000,
+            ),
+            db=db,
+        )
+        assert updated.pool_base_charge_paise == 60000
+        assert updated.ps4_1player_rate_paise == 45000
+
+        # 4. GET reflects new rates
+        fetched = get_rates(db=db)
+        assert fetched.pool_base_charge_paise == 60000
+        assert fetched.ps4_1player_rate_paise == 45000
+

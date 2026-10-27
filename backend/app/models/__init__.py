@@ -17,7 +17,8 @@ from app.models.expenses import ExpenseCategory, Expense, ExpenseStatus
 from app.models.owners import (
     Owner, OwnerTransaction, OwnerTransactionType,
     ProfitAllocation, ProfitAllocationLine,
-    Loan, LoanTransaction, LoanType, LoanStatus, LoanTransactionType
+    Loan, LoanTransaction, LoanType, LoanStatus, LoanTransactionType,
+    OwnerCollection, OwnerCollectionStatus
 )
 from app.models.audit import AuditLog, AppSetting
 from app.models.equipment import (
@@ -38,6 +39,7 @@ __all__ = [
     "Owner", "OwnerTransaction", "OwnerTransactionType",
     "ProfitAllocation", "ProfitAllocationLine",
     "Loan", "LoanTransaction", "LoanType", "LoanStatus", "LoanTransactionType",
+    "OwnerCollection", "OwnerCollectionStatus",
     "AuditLog", "AppSetting",
     "EquipmentPurchase", "EquipmentCategory", "EquipmentPaymentStatus",
     "DamageCharge", "DamageStatus", "DamagePayment",

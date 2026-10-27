@@ -111,6 +111,13 @@ def create_transfer(payload: AccountTransferCreate, db: Session = Depends(get_db
     if not from_acct or not to_acct:
         raise HTTPException(status_code=404, detail="One or both accounts not found")
 
+    source_balance = JournalService.get_account_balance(db, from_acct.code)
+    if payload.amount_paise > source_balance:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transfer amount exceeds available balance in {from_acct.name} (Available: Rs. {source_balance / 100:,.2f})",
+        )
+
     date_str = payload.transfer_date.strftime("%Y%m%d")
     count = db.query(AccountTransfer).filter(AccountTransfer.reference.like(f"TRF-{date_str}-%")).count()
     reference = f"TRF-{date_str}-{count + 1:04d}"

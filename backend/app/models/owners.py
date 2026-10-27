@@ -4,10 +4,10 @@ Owner and loan models — capital, distributions, profit allocations, loans.
 from __future__ import annotations
 
 import enum
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from sqlalchemy import (
-    String, Integer, Date, Text, Boolean, ForeignKey,
+    String, Integer, Date, DateTime, Text, Boolean, ForeignKey,
     CheckConstraint, Enum as SAEnum
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -23,6 +23,7 @@ class OwnerTransactionType(str, enum.Enum):
     LOAN_REPAYMENT = "loan_repayment"  # Business repays owner loan
     PROFIT_ALLOCATION = "profit_allocation"
     DISTRIBUTION = "distribution"
+    ADVANCE = "advance"
     WITHDRAWAL = "withdrawal"
     REIMBURSEMENT = "reimbursement"
     CORRECTION = "correction"
@@ -65,6 +66,8 @@ class OwnerTransaction(Base, TimestampMixin):
     account_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("financial_accounts.id"), nullable=True
     )
+    period_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    period_month: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     journal_entry_id: Mapped[Optional[int]] = mapped_column(
@@ -205,3 +208,43 @@ class LoanTransaction(Base, TimestampMixin):
     )
 
     loan: Mapped["Loan"] = relationship("Loan", back_populates="transactions")
+
+
+class OwnerCollectionStatus(str, enum.Enum):
+    CONFIRMED = "CONFIRMED"
+    PENDING_CONFIRMATION = "PENDING_CONFIRMATION"
+
+
+class OwnerCollection(Base, TimestampMixin):
+    """
+    Records business money collected by an owner/partner (Akash, Pasan, Vishwa).
+    Supports pending confirmation when exact amount is temporarily unknown.
+    Treated as business money, not automatically personal drawing or capital.
+    """
+    __tablename__ = "owner_collections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    reference: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    collector_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    owner_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("owners.id"), nullable=True, index=True
+    )
+    collection_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    amount_paise: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Null if amount is unknown
+    status: Mapped[OwnerCollectionStatus] = mapped_column(
+        SAEnum(OwnerCollectionStatus), default=OwnerCollectionStatus.CONFIRMED, nullable=False
+    )
+    destination_account_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("financial_accounts.id"), nullable=False
+    )
+    source_category: Mapped[str] = mapped_column(String(100), nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    confirmed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    journal_entry_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("journal_entries.id"), nullable=True
+    )
+
+    owner: Mapped[Optional["Owner"]] = relationship("Owner")
+

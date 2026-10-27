@@ -33,3 +33,16 @@ class PlayerResponse(PlayerBase):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PlayerMergeRequest(BaseModel):
+    primary_player_id: int
+    duplicate_player_id: int
+
+
+class PlayerMergeResponse(BaseModel):
+    success: bool
+    message: str
+    primary_player: PlayerResponse
+    sessions_moved: int
+

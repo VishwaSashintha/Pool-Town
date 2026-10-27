@@ -639,8 +639,8 @@ export const DamageChargesPage: React.FC = () => {
                     onChange={e => setPaymentMethod(e.target.value as any)}
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"
                   >
-                    <option value="cash">Cash (1001)</option>
-                    <option value="bank_transfer">Bank Transfer (1002)</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
                   </select>
                 </div>
 

@@ -44,7 +44,10 @@ def list_outstanding_sessions(
 
     # 1. Pool sessions
     if not session_type or session_type == "pool":
-        p_query = db.query(PoolSession).filter(PoolSession.status != SessionStatus.PAID)
+        p_query = db.query(PoolSession).filter(
+            PoolSession.status != SessionStatus.PAID,
+            PoolSession.status != SessionStatus.CANCELLED,
+        )
         if player_id:
             p_query = p_query.filter(PoolSession.player_id == player_id)
         pool_sessions = p_query.order_by(PoolSession.session_date.desc(), PoolSession.id.desc()).all()
@@ -74,7 +77,10 @@ def list_outstanding_sessions(
 
     # 2. PS4 sessions
     if not session_type or session_type == "ps4":
-        ps_query = db.query(PS4Session).filter(PS4Session.status != SessionStatus.PAID)
+        ps_query = db.query(PS4Session).filter(
+            PS4Session.status != SessionStatus.PAID,
+            PS4Session.status != SessionStatus.CANCELLED,
+        )
         if player_id:
             ps_query = ps_query.filter(PS4Session.player_id == player_id)
         ps4_sessions = ps_query.order_by(PS4Session.session_date.desc(), PS4Session.id.desc()).all()
@@ -120,6 +126,12 @@ def record_session_payment(payload: SessionPaymentCreate, db: Session = Depends(
 
     if not session:
         raise HTTPException(status_code=404, detail="Target session not found")
+
+    if session.status == SessionStatus.CANCELLED:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot record payment for a cancelled/voided session.",
+        )
 
     # 2. Check outstanding balance
     current_paid = db.query(

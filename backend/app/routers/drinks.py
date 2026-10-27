@@ -474,6 +474,7 @@ def list_sales(
             "unit_cost_paise": s.unit_cost_paise,
             "total_cogs_paise": s.total_cogs_paise,
             "notes": s.notes,
+            "is_cancelled": bool(s.notes and "[CANCELLED]" in s.notes),
         }
         for s in sales
     ]
@@ -583,3 +584,138 @@ def list_stock_movements(
         }
         for m in movements
     ]
+
+
+# ── Cancel Sale ───────────────────────────────────────────────────────────────
+
+class CancelSaleRequest(BaseModel):
+    admin_username: str
+    admin_password: str
+    reason: Optional[str] = None
+
+
+def _verify_admin_for_drinks(db: Session, username: str, password: str) -> None:
+    """Verify admin credentials for destructive drinks operations."""
+    import json
+    from app.models.audit import AppSetting
+    from app.routers.auth import _get_setting as _gs, _verify_password as _vp, ensure_default_credentials
+    ensure_default_credentials(db)
+    user_s = _gs(db, "admin_username")
+    hash_s = _gs(db, "admin_password_hash")
+    salt_s = _gs(db, "admin_password_salt")
+    if not user_s or not hash_s or not salt_s:
+        raise HTTPException(status_code=500, detail="Auth configuration missing")
+    if username != json.loads(user_s.value) or not _vp(password, json.loads(hash_s.value), json.loads(salt_s.value)):
+        raise HTTPException(status_code=403, detail="Administrator credentials are incorrect")
+
+
+_CANCEL_TAG = "[CANCELLED]"
+
+
+@router.post("/sales/{sale_id}/cancel")
+def cancel_drink_sale(
+    sale_id: int,
+    payload: CancelSaleRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Cancel a posted soft-drink sale.
+    - Verifies admin credentials server-side.
+    - Rejects already-cancelled sales.
+    - Reverses revenue and COGS journal entries.
+    - Creates a compensating +qty stock movement (CORRECTION type) to restore stock.
+    - Marks the sale record with a CANCELLED note for audit trail.
+    - Writes an AuditLog entry.
+    """
+    from datetime import datetime, timezone
+    from app.models.audit import AuditLog
+
+    _verify_admin_for_drinks(db, payload.admin_username, payload.admin_password)
+
+    sale = db.query(ProductSale).filter(ProductSale.id == sale_id).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale record not found")
+
+    # Check already cancelled (we tag notes as the lightweight status flag)
+    if sale.notes and _CANCEL_TAG in sale.notes:
+        raise HTTPException(status_code=409, detail="This sale has already been cancelled.")
+
+    reason = (payload.reason or "Administrator cancellation").strip() or "Administrator cancellation"
+    today = datetime.now(timezone.utc).date()
+
+    # 1. Reverse revenue journal entry
+    if sale.journal_entry_id:
+        try:
+            JournalService.reverse_entry(
+                db,
+                sale.journal_entry_id,
+                reversal_date=today,
+                reason=f"Cancel drink sale {sale.reference}: {reason}",
+            )
+        except Exception as e:
+            if "already reversed" not in str(e).lower():
+                raise HTTPException(status_code=422, detail=f"Failed to reverse revenue entry: {e}")
+
+    # 2. Find and reverse COGS journal entry (source_type='product_sale_cogs', source_id=sale.id)
+    from app.models.journal import JournalEntry, JournalEntryStatus
+    cogs_entry = db.query(JournalEntry).filter(
+        JournalEntry.source_type == "product_sale_cogs",
+        JournalEntry.source_id == sale.id,
+        JournalEntry.status == JournalEntryStatus.POSTED,
+    ).first()
+    if cogs_entry:
+        try:
+            JournalService.reverse_entry(
+                db,
+                cogs_entry.id,
+                reversal_date=today,
+                reason=f"Cancel drink sale {sale.reference}: COGS reversal",
+            )
+        except Exception as e:
+            if "already reversed" not in str(e).lower():
+                raise HTTPException(status_code=422, detail=f"Failed to reverse COGS entry: {e}")
+
+    # 3. Restore stock with a compensating CORRECTION movement
+    correction = StockMovement(
+        product_id=sale.product_id,
+        movement_type=StockMovementType.CORRECTION,
+        quantity_change=+sale.quantity,  # restore what was sold
+        unit_cost_paise=sale.unit_cost_paise,
+        event_date=today,
+        reference=f"CORR-{sale.reference}",
+        source_type="sale_cancellation",
+        source_id=sale.id,
+        notes=f"Stock restored: cancellation of sale {sale.reference}. Reason: {reason}",
+    )
+    db.add(correction)
+
+    # 4. Mark the sale as cancelled in the notes (non-destructive)
+    cancel_note = f"{_CANCEL_TAG} Cancelled on {today} by administrator. Reason: {reason}"
+    sale.notes = (sale.notes + " " + cancel_note).strip() if sale.notes else cancel_note
+
+    # 5. Audit log
+    product = db.query(Product).filter(Product.id == sale.product_id).first()
+    db.add(AuditLog(
+        entity_type="product_sale",
+        entity_id=sale.id,
+        action="cancel",
+        description=(
+            f"Drink sale {sale.reference} cancelled. "
+            f"Product: {product.name if product else sale.product_id}, "
+            f"Qty: {sale.quantity}, Revenue reversed: {sale.total_revenue_paise} paise. "
+            f"Reason: {reason}"
+        ),
+        user=payload.admin_username,
+    ))
+
+    db.commit()
+
+    return {
+        "success": True,
+        "reference": sale.reference,
+        "status": "cancelled",
+        "quantity_restored": sale.quantity,
+        "revenue_reversed_paise": sale.total_revenue_paise,
+        "reason": reason,
+        "cancelled_at": datetime.now(timezone.utc).isoformat(),
+    }

@@ -12,6 +12,7 @@ import {
   Download,
   Database,
   Layers,
+  FileSpreadsheet,
 } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { formatLKR } from "@/lib/money";
@@ -24,6 +25,22 @@ export const TransactionsPage: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const handleExportExcel = async (type: "transactions" | "ledger" = "transactions") => {
+    try {
+      setIsExportingExcel(true);
+      await apiClient.reports.downloadExport(type, {
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+        account_code: accountCode !== "all" ? accountCode : undefined,
+      });
+    } catch (err: any) {
+      alert(err.message || "Failed to download Excel file");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   const { data: accounts = [] } = useQuery<FinancialAccount[]>({
     queryKey: ["financialAccounts"],
@@ -95,13 +112,33 @@ export const TransactionsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          disabled={entries.length === 0}
-          className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 transition flex items-center gap-2 shadow-sm self-start sm:self-auto disabled:opacity-50"
-        >
-          <Download className="w-4 h-4 text-emerald-400" /> Export Ledger CSV
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            onClick={() => handleExportExcel("transactions")}
+            disabled={isExportingExcel || entries.length === 0}
+            className="px-3.5 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-sm font-medium border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            title="Export Transactions Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            {isExportingExcel ? "Exporting..." : "Excel (.xlsx)"}
+          </button>
+          <button
+            onClick={() => handleExportExcel("ledger")}
+            disabled={isExportingExcel || entries.length === 0}
+            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            title="Export Full Ledger Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+            Ledger (.xlsx)
+          </button>
+          <button
+            onClick={handleExportCSV}
+            disabled={entries.length === 0}
+            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+          >
+            <Download className="w-4 h-4 text-emerald-400" /> CSV
+          </button>
+        </div>
       </div>
 
       {/* Accounting Integrity Banner */}
@@ -160,10 +197,10 @@ export const TransactionsPage: React.FC = () => {
               onChange={e => setAccountCode(e.target.value)}
               className="w-full px-3 py-2 bg-slate-900/80 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-sky-500"
             >
-              <option value="all">All Accounts (1xxx - 7xxx)</option>
+              <option value="all">All Accounts</option>
               {accounts.map((a: FinancialAccount) => (
                 <option key={a.id} value={a.code}>
-                  {a.code} — {a.name}
+                  {a.name}
                 </option>
               ))}
             </select>
@@ -278,7 +315,6 @@ export const TransactionsPage: React.FC = () => {
                             {entry.lines.map((line: JournalLineItem, idx: number) => (
                               <tr key={idx} className="hover:bg-slate-700/20">
                                 <td className="py-2 px-3 font-sans">
-                                  <span className="font-mono text-slate-400 mr-2">{line.account_code}</span>
                                   <span className="text-white font-medium">{line.account_name}</span>
                                 </td>
                                 <td className="py-2 px-3 text-slate-400 font-sans">{line.description || "—"}</td>

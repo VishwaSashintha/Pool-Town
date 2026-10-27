@@ -1,10 +1,11 @@
 import os
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.services.backup import BackupService
+from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/backup", tags=["Database Backup & Restore"])
 
@@ -18,7 +19,10 @@ class BackupRestoreRequest(BaseModel):
 
 
 @router.post("/create", status_code=201)
-def create_backup(payload: Optional[BackupCreateRequest] = None):
+def create_backup(
+    payload: Optional[BackupCreateRequest] = None,
+    current_user: str = Depends(get_current_user),
+):
     try:
         note = payload.note if payload else "Manual backup"
         res = BackupService.create_backup(note=note)
@@ -28,7 +32,7 @@ def create_backup(payload: Optional[BackupCreateRequest] = None):
 
 
 @router.get("/list")
-def list_backups():
+def list_backups(current_user: str = Depends(get_current_user)):
     return BackupService.list_backups()
 
 
@@ -45,7 +49,10 @@ def download_backup(filename: str):
 
 
 @router.post("/restore")
-def restore_backup(payload: BackupRestoreRequest):
+def restore_backup(
+    payload: BackupRestoreRequest,
+    current_user: str = Depends(get_current_user),
+):
     try:
         res = BackupService.restore_backup(payload.filename)
         return res

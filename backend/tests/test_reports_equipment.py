@@ -138,3 +138,27 @@ def test_transactions_history_api(client: TestClient):
     assert "total" in data
     assert "items" in data
     assert isinstance(data["items"], list)
+
+
+def test_dashboard_analytics_endpoint(client: TestClient):
+    today_iso = date.today().isoformat()
+    res = client.get(f"/api/reports/analytics?start_date={today_iso}&end_date={today_iso}")
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert "kpis" in data
+    assert "total_revenue_paise" in data["kpis"]
+    assert "total_collected_paise" in data["kpis"]
+    assert "total_outstanding_paise" in data["kpis"]
+    assert "net_profit_paise" in data["kpis"]
+    assert "revenue_trend" in data
+    assert isinstance(data["revenue_trend"], list)
+    assert "revenue_distribution" in data
+    assert len(data["revenue_distribution"]) == 3
+    assert "service_comparison" in data
+    assert "activity_summary" in data
+    assert "payment_status" in data
+    assert "collections_by_method" in data
+    assert "expenses_by_category" in data
+    assert "inventory_overview" in data
+    assert "account_balances" in data
+    assert "recent_sessions" in data

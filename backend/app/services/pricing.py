@@ -201,3 +201,27 @@ class SessionCharge:
     def final_charge_rupees(self) -> str:
         from app.utils.money import format_lkr
         return format_lkr(self.final_charge_paise)
+
+
+def get_pricing_rates(db) -> dict[str, int]:
+    """Fetch current dynamic rates from AppSetting table, with fallback to hardcoded defaults."""
+    import json
+    from app.models.audit import AppSetting
+
+    def _read_int(key: str, default: int) -> int:
+        s = db.query(AppSetting).filter(AppSetting.key == key).first()
+        if not s:
+            return default
+        try:
+            val = json.loads(s.value)
+            return int(val) if val is not None else default
+        except Exception:
+            return default
+
+    return {
+        "pool_base_charge_paise": _read_int("pool_base_charge_paise", POOL_BASE_PAISE),
+        "pool_block_charge_paise": _read_int("pool_block_charge_paise", POOL_BLOCK_PAISE),
+        "ps4_1player_rate_paise": _read_int("ps4_1player_rate_paise", PS4_1P_HOURLY_PAISE),
+        "ps4_2players_rate_paise": _read_int("ps4_2players_rate_paise", PS4_2P_HOURLY_PAISE),
+    }
+

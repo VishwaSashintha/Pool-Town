@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     backup_dir: str = "./backups"
 
     # Business settings (configurable but with safe defaults)
-    business_name: str = "Billiard Hall"
+    business_name: str = "Pool Town"
     timezone: str = "Asia/Colombo"
 
     @property

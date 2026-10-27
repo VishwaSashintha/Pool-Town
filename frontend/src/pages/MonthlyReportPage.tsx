@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { formatLKR } from "@/lib/money";
@@ -31,11 +32,23 @@ export const MonthlyReportPage: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth() + 1);
   const [postingSuccess, setPostingSuccess] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const { data: report, isLoading } = useQuery<MonthlyReportData>({
     queryKey: ["monthlyReport", selectedYear, selectedMonth],
     queryFn: () => apiClient.reports.getMonthly(selectedYear, selectedMonth),
   });
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      await apiClient.reports.downloadExport("monthly", { year: selectedYear, month: selectedMonth });
+    } catch (err: any) {
+      alert(err.message || "Failed to download Excel file");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   const postAllocationMutation = useMutation({
     mutationFn: (data: ProfitAllocationPost) => apiClient.owners.postProfitAllocation(data),
@@ -87,12 +100,12 @@ export const MonthlyReportPage: React.FC = () => {
   const handleExportCSV = () => {
     if (!report) return;
     const rows = [
-      [`Billiard Hall Monthly Financial Report — ${report.month_name}`],
+      [`Pool Town Monthly Financial Report — ${report.month_name}`],
       [],
       ["Revenue Source", "Amount (Rs.)"],
-      ["Pool Board Revenue (4001)", (report.pool_revenue_paise / 100).toFixed(2)],
-      ["PS4 Gaming Revenue (4002)", (report.ps4_revenue_paise / 100).toFixed(2)],
-      ["Soft Drinks Sales Revenue (4003)", (report.drinks_revenue_paise / 100).toFixed(2)],
+      ["Pool Board Revenue", (report.pool_revenue_paise / 100).toFixed(2)],
+      ["PS4 Gaming Revenue", (report.ps4_revenue_paise / 100).toFixed(2)],
+      ["Soft Drinks Sales Revenue", (report.drinks_revenue_paise / 100).toFixed(2)],
       ["Total Gross Revenue", (report.total_revenue_paise / 100).toFixed(2)],
       [],
       ["Operating Costs", "Amount (Rs.)"],
@@ -152,6 +165,15 @@ export const MonthlyReportPage: React.FC = () => {
             </button>
           </div>
 
+          <button
+            onClick={handleExportExcel}
+            disabled={isExportingExcel}
+            className="px-3 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-sm font-medium border border-emerald-500/30 transition flex items-center gap-1.5 disabled:opacity-50"
+            title="Export Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            {isExportingExcel ? "Exporting..." : "Excel (.xlsx)"}
+          </button>
           <button
             onClick={handleExportCSV}
             className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 transition flex items-center gap-1.5"
@@ -250,19 +272,19 @@ export const MonthlyReportPage: React.FC = () => {
                 <div className="bg-slate-900/50 rounded-xl border border-slate-700/50 divide-y divide-slate-800">
                   <div className="p-3 flex justify-between items-center text-sm">
                     <span className="text-slate-300 flex items-center gap-2">
-                      <CircleDot className="w-4 h-4 text-emerald-400" /> Pool Board Playing Revenue (4001)
+                      <CircleDot className="w-4 h-4 text-emerald-400" /> Pool Board Playing Revenue
                     </span>
                     <span className="font-mono text-white font-semibold">{formatLKR(report.pool_revenue_paise)}</span>
                   </div>
                   <div className="p-3 flex justify-between items-center text-sm">
                     <span className="text-slate-300 flex items-center gap-2">
-                      <Gamepad2 className="w-4 h-4 text-sky-400" /> PS4 Gaming Session Revenue (4002)
+                      <Gamepad2 className="w-4 h-4 text-sky-400" /> PS4 Gaming Session Revenue
                     </span>
                     <span className="font-mono text-white font-semibold">{formatLKR(report.ps4_revenue_paise)}</span>
                   </div>
                   <div className="p-3 flex justify-between items-center text-sm">
                     <span className="text-slate-300 flex items-center gap-2">
-                      <Coffee className="w-4 h-4 text-amber-400" /> Soft Drinks Sales Revenue (4003)
+                      <Coffee className="w-4 h-4 text-amber-400" /> Soft Drinks Sales Revenue
                     </span>
                     <span className="font-mono text-white font-semibold">{formatLKR(report.drinks_revenue_paise)}</span>
                   </div>
@@ -330,7 +352,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <div className="text-xl font-bold font-mono text-white mt-1">
                   {formatLKR(report.profit_allocation.savings_paise)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">Target Rs. 100,000 / month</p>
+                <p className="text-[11px] text-slate-500 mt-1">40% Business Savings</p>
               </div>
 
               {/* Akash */}
@@ -342,7 +364,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <div className="text-xl font-bold font-mono text-white mt-1">
                   {formatLKR(report.profit_allocation.akash_paise)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">Credit to Account 7001</p>
+                <p className="text-[11px] text-slate-500 mt-1">Partner Monthly Share</p>
               </div>
 
               {/* Pasan */}
@@ -354,7 +376,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <div className="text-xl font-bold font-mono text-white mt-1">
                   {formatLKR(report.profit_allocation.pasan_paise)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">Credit to Account 7002</p>
+                <p className="text-[11px] text-slate-500 mt-1">Partner Monthly Share</p>
               </div>
 
               {/* Vishwa */}
@@ -366,7 +388,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <div className="text-xl font-bold font-mono text-white mt-1">
                   {formatLKR(report.profit_allocation.vishwa_paise)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">Credit to Account 7003</p>
+                <p className="text-[11px] text-slate-500 mt-1">Partner Monthly Share</p>
               </div>
             </div>
           </div>

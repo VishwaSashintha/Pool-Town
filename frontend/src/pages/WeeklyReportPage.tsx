@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { formatLKR } from "@/lib/money";
@@ -23,11 +24,23 @@ import type { WeeklyReportData } from "@/types";
 
 export const WeeklyReportPage: React.FC = () => {
   const [refDate, setRefDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const { data: report, isLoading } = useQuery<WeeklyReportData>({
     queryKey: ["weeklyReport", refDate],
     queryFn: () => apiClient.reports.getWeekly(refDate),
   });
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      await apiClient.reports.downloadExport("weekly", { week_date: refDate });
+    } catch (err: any) {
+      alert(err.message || "Failed to download Excel file");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   const handlePrevWeek = () => {
     const d = new Date(refDate);
@@ -44,7 +57,7 @@ export const WeeklyReportPage: React.FC = () => {
   const handleExportCSV = () => {
     if (!report) return;
     const rows = [
-      ["Billiard Hall Weekly Summary Report", `${report.week_start} to ${report.week_end}`],
+      ["Pool Town Weekly Summary Report", `${report.week_start} to ${report.week_end}`],
       [],
       ["Stream", "Weekly Amount (Rs.)"],
       ["Pool Board Revenue", (report.pool_revenue_paise / 100).toFixed(2)],
@@ -105,6 +118,15 @@ export const WeeklyReportPage: React.FC = () => {
             </button>
           </div>
 
+          <button
+            onClick={handleExportExcel}
+            disabled={isExportingExcel}
+            className="px-3 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-sm font-medium border border-emerald-500/30 transition flex items-center gap-1.5 disabled:opacity-50"
+            title="Export Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            {isExportingExcel ? "Exporting..." : "Excel (.xlsx)"}
+          </button>
           <button
             onClick={handleExportCSV}
             className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 transition flex items-center gap-1.5"

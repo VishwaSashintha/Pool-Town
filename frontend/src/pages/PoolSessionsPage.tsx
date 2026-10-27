@@ -9,6 +9,8 @@ import {
   AlertCircle,
   X,
   ChevronDown,
+  Ban,
+  CheckCircle2,
 } from "lucide-react";
 import { api } from "@/api/client";
 import { MoneyDisplay } from "@/components/common/MoneyDisplay";
@@ -74,6 +76,14 @@ export const PoolSessionsPage: React.FC = () => {
   const [collectBankRupees, setCollectBankRupees] = useState<number>(0);
   const [collectDate, setCollectDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [payError, setPayError] = useState<string>("");
+
+  // Void session modal state
+  const [voidSession, setVoidSession] = useState<PoolSession | null>(null);
+  const [voidAdminUser, setVoidAdminUser] = useState("");
+  const [voidAdminPass, setVoidAdminPass] = useState("");
+  const [voidReason, setVoidReason] = useState("");
+  const [voidError, setVoidError] = useState("");
+  const [voidSuccess, setVoidSuccess] = useState("");
 
   useEffect(() => {
     if (searchParams.get("action") === "new") {
@@ -209,6 +219,34 @@ export const PoolSessionsPage: React.FC = () => {
       setPayError(err.message || "Failed to record payment");
     },
   });
+
+  const voidMutation = useMutation({
+    mutationFn: () => {
+      if (!voidSession) throw new Error("No session selected");
+      if (!voidAdminUser.trim() || !voidAdminPass.trim())
+        throw new Error("Administrator username and password are required");
+      return api.poolSessions.void(voidSession.id, voidAdminUser.trim(), voidAdminPass, voidReason.trim() || undefined);
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["pool-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      setVoidSuccess(`Session ${result.reference} has been voided. ${result.payments_reversed} payment(s) reversed.`);
+      setVoidError("");
+    },
+    onError: (err: any) => {
+      setVoidError(err.message || "Failed to void session");
+    },
+  });
+
+  const openVoidModal = (s: PoolSession) => {
+    setVoidSession(s);
+    setVoidAdminUser("");
+    setVoidAdminPass("");
+    setVoidReason("");
+    setVoidError("");
+    setVoidSuccess("");
+  };
 
   const resetNewForm = () => {
     setPlayerName("");
@@ -370,14 +408,28 @@ export const PoolSessionsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-sans">
-                      {s.outstanding_paise > 0 && (
-                        <button
-                          onClick={() => handleOpenPayModal(s)}
-                          className="px-2.5 py-1 rounded bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 text-xs font-medium transition"
-                        >
-                          Collect Payment
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {s.outstanding_paise > 0 && String(s.status).toLowerCase() !== "cancelled" && (
+                          <button
+                            onClick={() => handleOpenPayModal(s)}
+                            className="px-2.5 py-1 rounded bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 text-xs font-medium transition"
+                          >
+                            Collect Payment
+                          </button>
+                        )}
+                        {String(s.status).toLowerCase() !== "cancelled" && (
+                          <button
+                            onClick={() => openVoidModal(s)}
+                            title="Void this session"
+                            className="p-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 transition border border-rose-500/30"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {String(s.status).toLowerCase() === "cancelled" && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-secondary/60 text-muted-foreground">VOIDED</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -722,6 +774,133 @@ export const PoolSessionsPage: React.FC = () => {
                 {payMutation.isPending ? "Recording..." : "Record Payment"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Void Session Modal ────────────────────────────────────────────────── */}
+      {voidSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400">
+                  <Ban className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Void Pool Session</h3>
+                  <p className="text-xs text-muted-foreground">{voidSession.reference}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setVoidSession(null); setVoidSuccess(""); setVoidError(""); }}
+                className="text-muted-foreground hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {voidSuccess ? (
+              <div className="flex flex-col items-center gap-4 py-4">
+                <div className="p-3 rounded-full bg-emerald-500/20 text-emerald-400">
+                  <CheckCircle2 className="h-8 w-8" />
+                </div>
+                <p className="text-sm text-emerald-300 text-center font-medium">{voidSuccess}</p>
+                <button
+                  onClick={() => { setVoidSession(null); setVoidSuccess(""); }}
+                  className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs space-y-1">
+                  <p className="font-semibold text-rose-300">⚠ This action cannot be undone</p>
+                  <ul className="list-disc list-inside text-rose-300/80 space-y-0.5">
+                    <li>Session will be marked as Voided/Cancelled</li>
+                    <li>Revenue journal entry will be reversed</li>
+                    <li>All payments will be reversed in accounting records</li>
+                    <li>Player's outstanding balance will be cleared</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 rounded-lg bg-secondary/30 border border-border/50 text-xs space-y-1 font-mono">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Player:</span>
+                    <span className="text-foreground font-sans">{voidSession.customer_name || voidSession.player?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Charge:</span>
+                    <span className="text-foreground"><MoneyDisplay paise={voidSession.final_charge_paise} /></span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Paid:</span>
+                    <span className="text-emerald-400"><MoneyDisplay paise={voidSession.paid_amount_paise} /></span>
+                  </div>
+                </div>
+
+                {voidError && (
+                  <div className="p-3 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{voidError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Admin Username *</label>
+                      <input
+                        type="text"
+                        value={voidAdminUser}
+                        onChange={(e) => setVoidAdminUser(e.target.value)}
+                        placeholder="admin"
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Admin Password *</label>
+                      <input
+                        type="password"
+                        value={voidAdminPass}
+                        onChange={(e) => setVoidAdminPass(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Reason (Optional)</label>
+                    <input
+                      type="text"
+                      value={voidReason}
+                      onChange={(e) => setVoidReason(e.target.value)}
+                      placeholder="e.g. Entered wrong player, duplicate entry"
+                      className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => { setVoidSession(null); setVoidError(""); }}
+                    className="px-4 py-2 rounded-lg border border-border text-xs font-medium hover:bg-secondary/40 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setVoidError(""); voidMutation.mutate(); }}
+                    disabled={!voidAdminUser.trim() || !voidAdminPass.trim() || voidMutation.isPending}
+                    className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition shadow-sm disabled:opacity-50"
+                  >
+                    {voidMutation.isPending ? "Voiding..." : "Void Session"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

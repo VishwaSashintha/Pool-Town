@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Download,
   Printer,
+  FileSpreadsheet,
 } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { formatLKR } from "@/lib/money";
@@ -20,11 +21,23 @@ import type { DailyReportData } from "@/types";
 
 export const DailyReportPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const { data: report, isLoading } = useQuery<DailyReportData>({
     queryKey: ["dailyReport", selectedDate],
     queryFn: () => apiClient.reports.getDaily(selectedDate),
   });
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      await apiClient.reports.downloadExport("daily", { report_date: selectedDate });
+    } catch (err: any) {
+      alert(err.message || "Failed to export Excel file");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -33,7 +46,7 @@ export const DailyReportPage: React.FC = () => {
   const handleExportCSV = () => {
     if (!report) return;
     const rows = [
-      ["Billiard Hall Daily Report", selectedDate],
+      ["Pool Town Daily Report", selectedDate],
       [],
       ["Revenue Stream", "Amount (Rs.)"],
       ["Pool Board Revenue", (report.pool_revenue_paise / 100).toFixed(2)],
@@ -49,9 +62,9 @@ export const DailyReportPage: React.FC = () => {
       ["Net Daily Income", (report.net_income_paise / 100).toFixed(2)],
       [],
       ["Account Balances", "Amount (Rs.)"],
-      ["Cash in Hand (1001)", (report.cash_balance_paise / 100).toFixed(2)],
-      ["Commercial Bank (1002)", (report.bank_balance_paise / 100).toFixed(2)],
-      ["Savings Reserve (1003)", (report.savings_balance_paise / 100).toFixed(2)],
+      ["Cash in Hand", (report.cash_balance_paise / 100).toFixed(2)],
+      ["Commercial Bank", (report.bank_balance_paise / 100).toFixed(2)],
+      ["Savings Reserve", (report.savings_balance_paise / 100).toFixed(2)],
       ["Total Liquid Funds", (report.total_liquid_paise / 100).toFixed(2)],
       ["Total Outstanding AR", (report.total_outstanding_ar_paise / 100).toFixed(2)],
     ];
@@ -92,8 +105,17 @@ export const DailyReportPage: React.FC = () => {
           </div>
 
           <button
+            onClick={handleExportExcel}
+            disabled={isExportingExcel}
+            className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
+            title="Download genuine Microsoft Excel (.xlsx) workbook"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>{isExportingExcel ? "Exporting…" : "Export Excel (.xlsx)"}</span>
+          </button>
+          <button
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 transition flex items-center gap-1.5"
+            className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition flex items-center gap-1.5"
             title="Export CSV"
           >
             <Download className="w-4 h-4 text-emerald-400" /> CSV
@@ -207,21 +229,21 @@ export const DailyReportPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
-                <span className="text-xs text-slate-400">Cash in Hand (1001)</span>
+                <span className="text-xs text-slate-400">Cash in Hand</span>
                 <p className="text-lg font-bold text-emerald-400 font-mono mt-1">
                   {formatLKR(report.cash_balance_paise)}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
-                <span className="text-xs text-slate-400">Commercial Bank (1002)</span>
+                <span className="text-xs text-slate-400">Commercial Bank</span>
                 <p className="text-lg font-bold text-sky-400 font-mono mt-1">
                   {formatLKR(report.bank_balance_paise)}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
-                <span className="text-xs text-slate-400">Savings Reserve (1003)</span>
+                <span className="text-xs text-slate-400">Savings Reserve</span>
                 <p className="text-lg font-bold text-teal-400 font-mono mt-1">
                   {formatLKR(report.savings_balance_paise)}
                 </p>
@@ -252,7 +274,7 @@ export const DailyReportPage: React.FC = () => {
             <p className="text-xs text-slate-400 leading-relaxed">
               Total cash collected on {selectedDate} was <strong className="text-white">{formatLKR(report.cash_collected_paise)}</strong> and
               bank transfers totaled <strong className="text-white">{formatLKR(report.bank_collected_paise)}</strong>.
-              Compare physical cash in register with the expected balance in Cash in Hand (1001) using the Cash & Bank reconciliation tab before closing operations.
+              Compare physical cash in register with the expected balance in Cash in Hand using the Cash &amp; Bank reconciliation tab before closing operations.
             </p>
           </div>
         </>

@@ -225,6 +225,8 @@ export interface OwnerTransaction {
   amount_paise: number;
   account_id?: number | null;
   account_name?: string | null;
+  period_year?: number | null;
+  period_month?: number | null;
   description: string;
   notes?: string | null;
   created_at?: string;
@@ -237,7 +239,49 @@ export interface OwnerTransactionCreate {
   amount_paise: number;
   account_id: number;
   description: string;
+  period_year?: number | null;
+  period_month?: number | null;
   notes?: string | null;
+}
+
+export interface PartnerMonthlyDetail {
+  owner_id: number;
+  owner_name: string;
+  profit_share_percent: string;
+  capital_balance_paise: number;
+  monthly_allocation_paise: number;
+  advances_paid_paise: number;
+  distributions_paid_paise: number;
+  remaining_payable_paise: number;
+}
+
+export interface PartnerMonthlyDistributionSummary {
+  year: number;
+  month: number;
+  period_label: string;
+  net_profit_paise: number;
+  savings_allocation_paise: number;
+  total_partner_allocations_paise: number;
+  total_advances_paid_paise: number;
+  total_distributions_paid_paise: number;
+  total_remaining_payable_paise: number;
+  partners: PartnerMonthlyDetail[];
+}
+
+export interface PricingRatesResponse {
+  pool_base_charge_paise: number;
+  pool_block_charge_paise: number;
+  ps4_1player_rate_paise: number;
+  ps4_2players_rate_paise: number;
+}
+
+export interface PricingRatesUpdate {
+  admin_username: string;
+  admin_password: string;
+  pool_base_charge_paise?: number;
+  pool_block_charge_paise?: number;
+  ps4_1player_rate_paise?: number;
+  ps4_2players_rate_paise?: number;
 }
 
 export interface Loan {
@@ -546,4 +590,181 @@ export interface SystemInfo {
   historical_start_date: string;
 }
 
+export interface DashboardAnalyticsData {
+  period: {
+    start_date: string;
+    end_date: string;
+    duration_days: number;
+    prev_start_date: string;
+    prev_end_date: string;
+  };
+  kpis: {
+    total_revenue_paise: number;
+    total_collected_paise: number;
+    total_outstanding_paise: number;
+    net_profit_paise: number;
+    total_expenses_paise: number;
+    prev_total_revenue_paise: number;
+    prev_total_collected_paise: number;
+    prev_total_expenses_paise: number;
+    prev_net_profit_paise: number;
+    revenue_growth_percent: number | null;
+    collections_growth_percent: number | null;
+    profit_growth_percent: number | null;
+  };
+  activity_summary: {
+    pool_sessions_count: number;
+    pool_revenue_paise: number;
+    ps4_sessions_count: number;
+    ps4_revenue_paise: number;
+    drinks_bottles_sold: number;
+    drinks_revenue_paise: number;
+    total_expenses_count: number;
+    total_expenses_paise: number;
+    unpaid_sessions_count: number;
+    unpaid_sessions_outstanding_paise: number;
+    stock_discrepancies_count: number;
+  };
+  revenue_trend: Array<{
+    date: string;
+    label: string;
+    pool_revenue_paise: number;
+    ps4_revenue_paise: number;
+    drinks_revenue_paise: number;
+    total_revenue_paise: number;
+    collections_paise: number;
+    expenses_paise: number;
+  }>;
+  revenue_distribution: Array<{
+    category: string;
+    name: string;
+    revenue_paise: number;
+    percentage: number;
+    count: number;
+    sessions_or_sales_count: number;
+    collections_paise: number;
+    color: string;
+  }>;
+  service_comparison: Array<{
+    category: string;
+    name: string;
+    revenue_paise: number;
+    percentage: number;
+    count: number;
+    sessions_or_sales_count: number;
+    collections_paise: number;
+    color: string;
+  }>;
+  payment_status: {
+    paid: { count: number; amount_paise: number; outstanding_paise: number };
+    partial: { count: number; amount_paise: number; outstanding_paise: number };
+    pending: { count: number; amount_paise: number; outstanding_paise: number };
+    total_sessions: number;
+    total_charged_paise: number;
+  };
+  collections_by_method: {
+    cash_collected_paise: number;
+    bank_collected_paise: number;
+    total_collected_paise: number;
+  };
+  expenses_by_category: Array<{
+    category_id: number;
+    category_name: string;
+    amount_paise: number;
+    count: number;
+    percentage: number;
+  }>;
+  inventory_overview: {
+    total_products_count: number;
+    total_bottles_in_stock: number;
+    low_stock_products_count: number;
+    discrepancies_count: number;
+    products: Array<{
+      id: number;
+      name: string;
+      current_stock: number;
+      reorder_level: number;
+      selling_price_paise: number;
+      is_low: boolean;
+    }>;
+  };
+  account_balances: {
+    cash_balance_paise: number;
+    bank_balance_paise: number;
+    operating_total_paise?: number;
+    savings_cash_paise?: number;
+    savings_bank_paise?: number;
+    savings_balance_paise: number;
+    total_savings_paise?: number;
+    total_liquid_paise: number;
+  };
+  recent_sessions: Array<{
+    id: number;
+    svcType: "Pool" | "PS4";
+    reference: string;
+    session_date: string;
+    customer_name: string;
+    duration_minutes: number;
+    final_charge_paise: number;
+    paid_amount_paise: number;
+    outstanding_paise: number;
+    status: string;
+  }>;
+}
+
+export interface BusinessProfile {
+  business_name: string;
+  business_address: string;
+  business_phone: string;
+  business_email: string;
+  business_tax_number: string;
+  currency_code: string;
+  currency_symbol: string;
+  timezone: string;
+  date_format: string;
+  receipt_header: string;
+  receipt_footer: string;
+}
+
+export interface OwnerCollection {
+  id: number;
+  reference: string;
+  collector_name: string;
+  owner_id?: number | null;
+  collection_date: string;
+  amount_paise?: number | null;
+  status: "CONFIRMED" | "PENDING_CONFIRMATION";
+  destination_account_id: number;
+  destination_account_name?: string | null;
+  source_category: string;
+  notes?: string | null;
+  created_by?: string | null;
+  confirmed_at?: string | null;
+  confirmed_by?: string | null;
+  journal_entry_id?: number | null;
+  created_at?: string | null;
+}
+
+export interface OwnerCollectionCreate {
+  collector_name: string;
+  owner_id?: number | null;
+  collection_date: string;
+  amount_paise?: number | null;
+  destination_account_id: number;
+  source_category: string;
+  notes?: string | null;
+  is_unknown_amount?: boolean;
+}
+
+export interface OwnerCollectionConfirm {
+  amount_paise: number;
+  notes?: string | null;
+  confirmed_date?: string | null;
+}
+
+export interface OwnerCollectionUpdate {
+  notes?: string | null;
+  source_category?: string | null;
+  destination_account_id?: number | null;
+}
 

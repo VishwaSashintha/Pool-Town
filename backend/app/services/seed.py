@@ -17,12 +17,13 @@ CHART_OF_ACCOUNTS = [
     # Assets (1xxx)
     ("1001", "Cash in Hand", AccountType.CASH, "Physical cash on premises", 1),
     ("1002", "Main Bank Account", AccountType.BANK, "Primary operational checking/current account", 2),
-    ("1003", "Savings Account", AccountType.SAVINGS, "Business savings reserve account (40% profit)", 3),
-    ("1010", "Accounts Receivable — Pool", AccountType.OTHER, "Unpaid balances for Pool sessions", 4),
-    ("1011", "Accounts Receivable — PS4", AccountType.OTHER, "Unpaid balances for PS4 sessions", 5),
-    ("1020", "Inventory — Drinks", AccountType.OTHER, "Drinks and inventory stock asset value", 6),
-    ("1030", "Fixed Assets", AccountType.OTHER, "Pool tables, PS4 consoles, furniture, AC, etc.", 7),
-    ("1031", "Accumulated Depreciation", AccountType.OTHER, "Contra asset for accumulated depreciation", 8),
+    ("1003", "Savings Account", AccountType.SAVINGS, "Business savings reserve account held in bank", 3),
+    ("1004", "Savings Cash", AccountType.SAVINGS, "Business savings reserve held in physical cash", 4),
+    ("1010", "Accounts Receivable — Pool", AccountType.OTHER, "Unpaid balances for Pool sessions", 5),
+    ("1011", "Accounts Receivable — PS4", AccountType.OTHER, "Unpaid balances for PS4 sessions", 6),
+    ("1020", "Inventory — Drinks", AccountType.OTHER, "Drinks and inventory stock asset value", 7),
+    ("1030", "Fixed Assets", AccountType.OTHER, "Pool tables, PS4 consoles, furniture, AC, etc.", 8),
+    ("1031", "Accumulated Depreciation", AccountType.OTHER, "Contra asset for accumulated depreciation", 9),
 
     # Liabilities (2xxx)
     ("2001", "Accounts Payable — Suppliers", AccountType.OTHER, "Unpaid supplier bills for inventory", 10),
@@ -53,7 +54,7 @@ CHART_OF_ACCOUNTS = [
     ("6001", "Electricity", AccountType.OTHER, "CEB electricity bill payments", 50),
     ("6002", "Water", AccountType.OTHER, "Water utility payments", 51),
     ("6003", "Rent", AccountType.OTHER, "Premises lease/rental payments", 52),
-    ("6004", "Pool Equipment & Maintenance", AccountType.OTHER, "Cues, cloth, balls, chalk, maintenance", 53),
+    ("6004", "Pool Equipment & Maintenance", AccountType.OTHER, "Cue repairs, chalk, table felt, balls", 53),
     ("6005", "Building Maintenance & Repairs", AccountType.OTHER, "General building repairs and fittings", 54),
     ("6006", "PS4 Games & Equipment", AccountType.OTHER, "Controllers, game purchases, subscriptions", 55),
     ("6007", "Salaries", AccountType.OTHER, "Staff wages and compensation", 56),
@@ -61,7 +62,8 @@ CHART_OF_ACCOUNTS = [
     ("6009", "Bank Charges", AccountType.OTHER, "Account maintenance fees, transfer charges", 58),
     ("6010", "Events & Openings", AccountType.OTHER, "Tournaments, promotions, opening costs", 59),
     ("6011", "Other Expenses", AccountType.OTHER, "Sundry operational expenses", 60),
-    ("6020", "Interest Expense", AccountType.OTHER, "Interest paid on business or external loans", 61),
+    ("6012", "Wi-Fi & Internet", AccountType.OTHER, "Monthly Wi-Fi and internet connection charges", 61),
+    ("6020", "Interest Expense", AccountType.OTHER, "Interest paid on business or external loans", 62),
 
     # Distributions (7xxx)
     ("7001", "Owner Distribution — Akash", AccountType.OTHER, "Profit drawings/distributions to Akash", 70),
@@ -80,6 +82,7 @@ EXPENSE_CATEGORIES = [
     ("Fuel & Travelling", "6008", "Travel and transport expenses"),
     ("Bank Charges", "6009", "Bank fees and transaction charges"),
     ("Events & Openings", "6010", "Tournaments and promotional events"),
+    ("Wi-Fi Bill", "6012", "Monthly Wi-Fi and internet connection charges"),
     ("Other Expenses", "6011", "General unclassified operational expenses"),
     ("Interest Expense", "6020", "Financing and loan interest charges"),
 ]
@@ -91,7 +94,7 @@ OWNERS = [
 ]
 
 DEFAULT_SETTINGS = [
-    ("business_name", json.dumps("Billiard Hall"), "Official Business Name"),
+    ("business_name", json.dumps("Pool Town"), "Official Business Name"),
     ("historical_start_date", json.dumps("2026-01-01"), "Earliest allowed operating transaction date"),
     ("currency_code", json.dumps("LKR"), "Standard currency code"),
     ("currency_symbol", json.dumps("Rs."), "Currency display symbol"),

@@ -1,14 +1,16 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models.players import Player
 from app.models.sessions import PoolSession, PS4Session, SessionStatus
 from app.models.payments import SessionPayment, PaymentMethod, PaymentStatus
 from app.models.accounts import FinancialAccount
+from app.models.audit import AuditLog
 from app.schemas.sessions import (
     PoolSessionCreate,
     PoolSessionResponse,
@@ -16,10 +18,35 @@ from app.schemas.sessions import (
     PS4SessionResponse,
 )
 from app.schemas.players import PlayerResponse
-from app.services.pricing import calculate_pool_charge, calculate_ps4_charge, apply_discount
+from app.services.pricing import calculate_pool_charge, calculate_ps4_charge, apply_discount, get_pricing_rates
 from app.services.journal import JournalService, JournalLineInput
+from app.routers.auth import get_current_user, _get_setting, _verify_password
 
 router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
+
+
+class VoidSessionRequest(BaseModel):
+    admin_username: str
+    admin_password: str
+    reason: Optional[str] = None
+
+
+def _verify_admin_credentials(db: Session, username: str, password: str) -> None:
+    """Validate admin username + password against hashed AppSetting values.
+    Raises HTTP 403 if invalid. Never exposes stored hash."""
+    import json
+    from app.routers.auth import ensure_default_credentials
+    ensure_default_credentials(db)
+    user_s = _get_setting(db, "admin_username")
+    hash_s = _get_setting(db, "admin_password_hash")
+    salt_s = _get_setting(db, "admin_password_salt")
+    if not user_s or not hash_s or not salt_s:
+        raise HTTPException(status_code=500, detail="Auth configuration missing")
+    stored_username = json.loads(user_s.value)
+    stored_hash = json.loads(hash_s.value)
+    stored_salt = json.loads(salt_s.value)
+    if username != stored_username or not _verify_password(password, stored_hash, stored_salt):
+        raise HTTPException(status_code=403, detail="Administrator credentials are incorrect")
 
 
 def _normalize_name(name: str) -> str:
@@ -119,11 +146,16 @@ def create_pool_session(payload: PoolSessionCreate, db: Session = Depends(get_db
         player = _get_or_create_player(db, "Walk-in Guest")
 
     # 2. Compute charges
+    rates = get_pricing_rates(db)
     actual_min = payload.actual_minutes or payload.chargeable_minutes
     if payload.custom_standard_charge_paise is not None:
         standard_paise = max(0, payload.custom_standard_charge_paise)
     else:
-        standard_paise = calculate_pool_charge(payload.chargeable_minutes)
+        standard_paise = calculate_pool_charge(
+            payload.chargeable_minutes,
+            base_paise=rates["pool_base_charge_paise"],
+            block_paise=rates["pool_block_charge_paise"],
+        )
     final_paise = apply_discount(standard_paise, payload.discount_paise)
 
     # Validate payment does not exceed charge (Decision D-010)
@@ -342,7 +374,13 @@ def create_ps4_session(payload: PS4SessionCreate, db: Session = Depends(get_db))
         else:
             player2 = _get_or_create_player(db, "Player 2")
 
-    standard_paise = calculate_ps4_charge(payload.minutes, payload.player_count)
+    rates = get_pricing_rates(db)
+    standard_paise = calculate_ps4_charge(
+        payload.minutes,
+        payload.player_count,
+        rate_1p_paise=rates["ps4_1player_rate_paise"],
+        rate_2p_paise=rates["ps4_2players_rate_paise"],
+    )
     final_paise = apply_discount(standard_paise, payload.discount_paise)
 
     if payload.initial_payment_paise > final_paise:
@@ -472,3 +510,139 @@ def create_ps4_session(payload: PS4SessionCreate, db: Session = Depends(get_db))
         notes=session.notes,
         created_at=session.created_at,
     )
+
+
+# ── Void / Cancel Sessions ────────────────────────────────────────────────────
+
+def _void_session_common(
+    db: Session,
+    session_obj,
+    session_type: str,
+    payload: VoidSessionRequest,
+    current_user: str,
+) -> dict:
+    """
+    Shared void logic for pool and PS4 sessions.
+    1. Verify admin credentials server-side.
+    2. Reject already-cancelled sessions.
+    3. Reverse the revenue journal entry (if any).
+    4. Reverse each confirmed payment's journal entry; mark payment REVERSED.
+    5. Mark session CANCELLED.
+    6. Write AuditLog.
+    """
+    from app.routers.auth import ensure_default_credentials
+    ensure_default_credentials(db)
+    _verify_admin_credentials(db, payload.admin_username, payload.admin_password)
+
+    if session_obj.status == SessionStatus.CANCELLED:
+        raise HTTPException(status_code=409, detail="Session is already cancelled.")
+
+    reason = (payload.reason or "Administrator void").strip() or "Administrator void"
+    today = datetime.now(timezone.utc).date()
+
+    # Reverse revenue journal entry
+    if session_obj.journal_entry_id:
+        try:
+            JournalService.reverse_entry(
+                db,
+                session_obj.journal_entry_id,
+                reversal_date=today,
+                reason=f"Void {session_type} session {session_obj.reference}: {reason}",
+                created_by=current_user,
+            )
+        except Exception as e:
+            if "already reversed" in str(e).lower():
+                pass  # idempotent — already reversed
+            else:
+                raise HTTPException(status_code=422, detail=f"Failed to reverse revenue entry: {e}")
+
+    # Reverse confirmed payment journal entries and mark payments REVERSED
+    payments = db.query(SessionPayment).filter(
+        SessionPayment.session_type == session_type,
+        SessionPayment.session_id == session_obj.id,
+        SessionPayment.status == PaymentStatus.CONFIRMED,
+    ).all()
+
+    for pmt in payments:
+        if pmt.journal_entry_id:
+            try:
+                JournalService.reverse_entry(
+                    db,
+                    pmt.journal_entry_id,
+                    reversal_date=today,
+                    reason=f"Void {session_type} session {session_obj.reference}: payment reversal",
+                    created_by=current_user,
+                )
+            except Exception as e:
+                if "already reversed" in str(e).lower():
+                    pass
+                else:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Failed to reverse payment {pmt.reference}: {e}"
+                    )
+        pmt.status = PaymentStatus.REVERSED
+
+    # Mark session cancelled
+    session_obj.status = SessionStatus.CANCELLED
+    if hasattr(session_obj, "notes"):
+        void_note = f"[VOIDED by {current_user} on {today}: {reason}]"
+        session_obj.notes = (session_obj.notes + " " + void_note).strip() if session_obj.notes else void_note
+
+    # Audit log
+    db.add(AuditLog(
+        entity_type=f"{session_type}_session",
+        entity_id=session_obj.id,
+        action="void",
+        description=(
+            f"{session_type.upper()} session {session_obj.reference} voided by {current_user}. "
+            f"Payments reversed: {len(payments)}. Reason: {reason}"
+        ),
+        user=current_user,
+    ))
+
+    db.commit()
+
+    return {
+        "success": True,
+        "reference": session_obj.reference,
+        "status": "cancelled",
+        "payments_reversed": len(payments),
+        "reason": reason,
+        "voided_by": current_user,
+        "voided_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.post("/pool/{session_id}/void")
+def void_pool_session(
+    session_id: int,
+    payload: VoidSessionRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Void (cancel) a pool session.
+    Reverses all accounting effects. Requires valid admin credentials in body.
+    """
+    _verify_admin_credentials(db, payload.admin_username, payload.admin_password)
+    session = db.query(PoolSession).filter(PoolSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Pool session not found")
+    return _void_session_common(db, session, "pool", payload, payload.admin_username)
+
+
+@router.post("/ps4/{session_id}/void")
+def void_ps4_session(
+    session_id: int,
+    payload: VoidSessionRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Void (cancel) a PS4 session.
+    Reverses all accounting effects. Requires valid admin credentials in body.
+    """
+    _verify_admin_credentials(db, payload.admin_username, payload.admin_password)
+    session = db.query(PS4Session).filter(PS4Session.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="PS4 session not found")
+    return _void_session_common(db, session, "ps4", payload, payload.admin_username)

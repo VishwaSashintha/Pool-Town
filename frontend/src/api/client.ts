@@ -1,6 +1,7 @@
 /**
  * Authoritative API client for the Billiard Hall Management backend.
  * Uses typed endpoints and standard fetch.
+ * Automatically injects the X-Auth-Token header from sessionStorage on every request.
  */
 import type {
   SystemInfo,
@@ -42,9 +43,17 @@ import type {
   DamagePaymentCreate,
   OutstandingSession,
   JournalEntryItem,
+  PartnerMonthlyDistributionSummary,
+  PricingRatesResponse,
+  PricingRatesUpdate,
   DailyReportData,
   WeeklyReportData,
   MonthlyReportData,
+  DashboardAnalyticsData,
+  BusinessProfile,
+  OwnerCollection,
+  OwnerCollectionCreate,
+  OwnerCollectionConfirm,
 } from "../types";
 
 export interface ProductCreateInput {
@@ -57,14 +66,55 @@ export interface ProductCreateInput {
   reorder_level: number;
 }
 
+export interface ExpensePaymentCreateInput {
+  payment_date: string;
+  amount_paise: number;
+  payment_method: "cash" | "bank_transfer" | "savings";
+  notes?: string;
+}
+
+export interface ExpensePaymentResponse {
+  id: number;
+  reference: string;
+  expense_id: number;
+  payment_date: string;
+  amount_paise: number;
+  payment_method: string;
+  account_id?: number | null;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface PlayerUpdate {
+  name?: string;
+  phone?: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
+export interface AdminResetResponse {
+  success: boolean;
+  backup_file: string;
+  message: string;
+  tables_cleared: string[];
+  cleared_at: string;
+}
+
 const API_BASE = "/api";
+const TOKEN_STORAGE_KEY = "bh_session_token";
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  const headers = {
+
+  // Automatically inject the auth token from sessionStorage
+  const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(options.headers || {}),
+    ...(options.headers as Record<string, string> || {}),
   };
+  if (token) {
+    headers["X-Auth-Token"] = token;
+  }
 
   const response = await fetch(url, {
     ...options,
@@ -84,6 +134,44 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   return response.json();
 }
+
+export async function downloadExport(endpoint: string, fallbackFilename: string): Promise<void> {
+  const url = `${API_BASE}${endpoint}`;
+  const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["X-Auth-Token"] = token;
+  }
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    let msg = `Export failed (${response.status})`;
+    try {
+      const err = await response.json();
+      msg = err.detail || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  let filename = fallbackFilename;
+  const disposition = response.headers.get("Content-Disposition");
+  if (disposition && disposition.includes("filename=")) {
+    const match = disposition.match(/filename="?([^";]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
 
 export const api = {
   // System
@@ -115,6 +203,13 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ minutes, player_count, discount_paise }),
       }),
+
+    getRates: () => request<PricingRatesResponse>("/pricing/rates"),
+    updateRates: (data: PricingRatesUpdate) =>
+      request<PricingRatesResponse>("/pricing/rates", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
   },
 
   // Players
@@ -125,6 +220,20 @@ export const api = {
       request<Player>("/players", {
         method: "POST",
         body: JSON.stringify(data),
+      }),
+    update: (id: number, data: PlayerUpdate) =>
+      request<Player>(`/players/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request<{ message: string; deleted: boolean }>(`/players/${id}`, {
+        method: "DELETE",
+      }),
+    merge: (primary_player_id: number, duplicate_player_id: number) =>
+      request<{ success: boolean; message: string; primary_player: Player; sessions_moved: number }>("/players/merge", {
+        method: "POST",
+        body: JSON.stringify({ primary_player_id, duplicate_player_id }),
       }),
   },
 
@@ -143,6 +252,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    void: (id: number, admin_username: string, admin_password: string, reason?: string) =>
+      request<{ success: boolean; reference: string; status: string; payments_reversed: number; reason: string; voided_by: string; voided_at: string }>(
+        `/sessions/pool/${id}/void`, {
+        method: "POST",
+        body: JSON.stringify({ admin_username, admin_password, reason }),
+      }),
   },
 
   // PS4 Sessions
@@ -159,6 +274,12 @@ export const api = {
       request<PS4Session>("/sessions/ps4", {
         method: "POST",
         body: JSON.stringify(data),
+      }),
+    void: (id: number, admin_username: string, admin_password: string, reason?: string) =>
+      request<{ success: boolean; reference: string; status: string; payments_reversed: number; reason: string; voided_by: string; voided_at: string }>(
+        `/sessions/ps4/${id}/void`, {
+        method: "POST",
+        body: JSON.stringify({ admin_username, admin_password, reason }),
       }),
   },
 
@@ -180,6 +301,20 @@ export const api = {
     },
   },
 
+  // Drinks (Soft Drinks)
+  drinks: {
+    listProducts: (include_inactive?: boolean) =>
+      request<any[]>(include_inactive ? "/drinks/products?include_inactive=true" : "/drinks/products"),
+    listSales: (sale_date?: string) =>
+      request<any[]>(sale_date ? `/drinks/sales?sale_date=${sale_date}` : "/drinks/sales"),
+    cancelSale: (sale_id: number, admin_username: string, admin_password: string, reason?: string) =>
+      request<{ success: boolean; reference: string; status: string; quantity_restored: number; revenue_reversed_paise: number; reason: string; cancelled_at: string }>(
+        `/drinks/sales/${sale_id}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ admin_username, admin_password, reason }),
+      }),
+  },
+
   // Inventory
   inventory: {
     listProducts: () => request<Product[]>("/inventory/products"),
@@ -196,6 +331,13 @@ export const api = {
     listCategories: () => request<ExpenseCategory[]>("/expenses/categories"),
     create: (data: ExpenseCreate) =>
       request<Expense>("/expenses", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    listPayments: (expense_id: number) =>
+      request<ExpensePaymentResponse[]>(`/expenses/${expense_id}/payments`),
+    payBill: (expense_id: number, data: ExpensePaymentCreateInput) =>
+      request<ExpensePaymentResponse>(`/expenses/${expense_id}/payments`, {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -308,7 +450,9 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    // Profit Allocation
+    getMonthlySummary: (year: number, month: number) =>
+      request<PartnerMonthlyDistributionSummary>(`/owners/monthly-summary?year=${year}&month=${month}`),
+
     previewProfitAllocation: (year: number, month: number) =>
       request<ProfitAllocationPreview>(`/owners/profit-allocation/preview?year=${year}&month=${month}`),
     postProfitAllocation: (data: ProfitAllocationPost) =>
@@ -316,7 +460,31 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+
+    // Collections
+    listCollections: (params?: { collector_name?: string; owner_id?: number; status?: string; start_date?: string; end_date?: string; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.collector_name) q.set("collector_name", params.collector_name);
+      if (params?.owner_id) q.set("owner_id", params.owner_id.toString());
+      if (params?.status) q.set("status", params.status);
+      if (params?.start_date) q.set("start_date", params.start_date);
+      if (params?.end_date) q.set("end_date", params.end_date);
+      if (params?.limit) q.set("limit", params.limit.toString());
+      const qs = q.toString() ? `?${q.toString()}` : "";
+      return request<OwnerCollection[]>(`/owners/collections${qs}`);
+    },
+    recordCollection: (data: OwnerCollectionCreate) =>
+      request<OwnerCollection>("/owners/collections", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    confirmCollection: (id: number, data: OwnerCollectionConfirm) =>
+      request<OwnerCollection>(`/owners/collections/${id}/confirm`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
+
 
   // Authentication
   auth: {
@@ -407,10 +575,46 @@ export const api = {
     },
     getSummary: (dateStr?: string) =>
       request<DailyReportData>(dateStr ? `/reports/summary?report_date=${dateStr}` : "/reports/summary"),
+    getAnalytics: (startDate?: string, endDate?: string) => {
+      const params = new URLSearchParams();
+      if (startDate) params.set("start_date", startDate);
+      if (endDate) params.set("end_date", endDate);
+      const q = params.toString();
+      return request<DashboardAnalyticsData>(q ? `/reports/analytics?${q}` : "/reports/analytics");
+    },
+    downloadExport: (type: string, queryParams?: Record<string, string | number | undefined>) => {
+      const q = new URLSearchParams();
+      if (queryParams) {
+        Object.entries(queryParams).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+        });
+      }
+      const qs = q.toString() ? `?${q.toString()}` : "";
+      return downloadExport(`/reports/export/${type}${qs}`, `pool_town_${type}.xlsx`);
+    },
+  },
+
+  // Settings & Configuration
+  settings: {
+    getProfile: () => request<BusinessProfile>("/settings/profile"),
+    updateProfile: (data: Partial<BusinessProfile>) =>
+      request<BusinessProfile>("/settings/profile", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+  },
+
+
+  // Administration
+  admin: {
+    resetBusinessData: (confirmPhrase: string) =>
+      request<AdminResetResponse>("/admin/reset-business-data", {
+        method: "POST",
+        body: JSON.stringify({ confirm_phrase: confirmPhrase }),
+      }),
   },
 };
 
+
 export const apiClient = api;
 export default api;
-
-

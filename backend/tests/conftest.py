@@ -61,6 +61,7 @@ def client(db):
     """
     from app.main import app
     from app.database import get_db
+    from app.routers.auth import get_current_user
     
     def override_get_db():
         try:
@@ -69,6 +70,7 @@ def client(db):
             pass
     
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: "test_admin"
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
