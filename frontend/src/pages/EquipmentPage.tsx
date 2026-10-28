@@ -179,7 +179,7 @@ export const EquipmentPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Total Equipment Spend</span>
             <DollarSign className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-bold text-white">{formatLKR(totalSpend)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-white">{formatLKR(totalSpend)}</p>
           <p className="text-xs text-slate-500 mt-1">{purchases.length} total purchase(s)</p>
         </div>
 
@@ -188,7 +188,7 @@ export const EquipmentPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Cue Sticks & Tips</span>
             <CircleDot className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-emerald-400">{formatLKR(cueSpend)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-emerald-400">{formatLKR(cueSpend)}</p>
           <p className="text-xs text-slate-500 mt-1">Cues, chalk, tips & accessories</p>
         </div>
 
@@ -197,7 +197,7 @@ export const EquipmentPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Table Maintenance</span>
             <Wrench className="w-4 h-4 text-teal-400" />
           </div>
-          <p className="text-2xl font-bold text-teal-400">{formatLKR(tableSpend)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-teal-400">{formatLKR(tableSpend)}</p>
           <p className="text-xs text-slate-500 mt-1">Cloth, cushions & slate repairs</p>
         </div>
 
@@ -206,7 +206,7 @@ export const EquipmentPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">PS4 Hardware & Pads</span>
             <Gamepad2 className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-bold text-sky-400">{formatLKR(ps4Spend)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-sky-400">{formatLKR(ps4Spend)}</p>
           <p className="text-xs text-slate-500 mt-1">Controllers, games & cables</p>
         </div>
       </div>

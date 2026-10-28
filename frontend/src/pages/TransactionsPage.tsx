@@ -148,7 +148,7 @@ export const TransactionsPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Total Journal Entries</span>
             <Database className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-bold text-white">{totalEntries}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-white">{totalEntries}</p>
           <p className="text-xs text-slate-500 mt-1">Total transactions posted</p>
         </div>
 

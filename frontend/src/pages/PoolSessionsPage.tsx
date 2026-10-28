@@ -523,7 +523,7 @@ export const PoolSessionsPage: React.FC = () => {
                       }`}
                     >
                       <span>{d.label}</span>
-                      <span className={`text-[10px] ${durationMinutes === d.minutes ? "text-emerald-200" : "text-muted-foreground/60"}`}>
+                      <span className={`text-[10px] font-numeric font-bold tabular-nums ${durationMinutes === d.minutes ? "text-emerald-200" : "text-muted-foreground/60"}`}>
                         Rs. {d.price.toLocaleString()}
                       </span>
                     </button>
@@ -532,14 +532,14 @@ export const PoolSessionsPage: React.FC = () => {
               </div>
 
               {/* Price Summary */}
-              <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/80 space-y-2 font-mono text-xs">
+              <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/80 space-y-2 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Time played:</span>
-                  <span className="font-semibold text-foreground">{minutesToLabel(durationMinutes)}</span>
+                  <span className="font-semibold font-numeric tabular-nums text-foreground">{minutesToLabel(durationMinutes)}</span>
                 </div>
                 <div className="flex justify-between items-center pt-1.5 border-t border-border/40">
                   <span className="font-sans font-medium text-foreground text-sm">Total price:</span>
-                  <span className="text-lg font-bold text-emerald-400">{formatLKR(finalChargePaise)}</span>
+                  <span className="text-lg font-bold font-numeric tabular-nums text-emerald-400">{formatLKR(finalChargePaise)}</span>
                 </div>
               </div>
 

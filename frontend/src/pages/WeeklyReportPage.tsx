@@ -157,7 +157,7 @@ export const WeeklyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Total Weekly Revenue</span>
                 <DollarSign className="w-4 h-4 text-emerald-400" />
               </div>
-              <p className="text-2xl font-bold text-white">{formatLKR(report.total_revenue_paise)}</p>
+              <p className="text-2xl font-bold font-numeric text-white">{formatLKR(report.total_revenue_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">Pool, PS4 & drinks gross revenue</p>
             </div>
 
@@ -166,9 +166,9 @@ export const WeeklyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Weekly Collections</span>
                 <Banknote className="w-4 h-4 text-sky-400" />
               </div>
-              <p className="text-2xl font-bold text-sky-400">{formatLKR(report.total_collected_paise)}</p>
+              <p className="text-2xl font-bold font-numeric text-sky-400">{formatLKR(report.total_collected_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">
-                Cash: {formatLKR(report.cash_collected_paise)} • Bank: {formatLKR(report.bank_collected_paise)}
+                Cash: <strong className="font-numeric font-bold text-slate-300">{formatLKR(report.cash_collected_paise)}</strong> • Bank: <strong className="font-numeric font-bold text-slate-300">{formatLKR(report.bank_collected_paise)}</strong>
               </p>
             </div>
 
@@ -177,7 +177,7 @@ export const WeeklyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Weekly Expenses</span>
                 <Receipt className="w-4 h-4 text-rose-400" />
               </div>
-              <p className="text-2xl font-bold text-rose-400">{formatLKR(report.total_expenses_paise)}</p>
+              <p className="text-2xl font-bold font-numeric text-rose-400">{formatLKR(report.total_expenses_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">All operating costs & utilities</p>
             </div>
 
@@ -186,7 +186,7 @@ export const WeeklyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Net Weekly Margin</span>
                 <TrendingUp className="w-4 h-4 text-teal-400" />
               </div>
-              <p className="text-2xl font-bold text-emerald-400">{formatLKR(report.net_income_paise)}</p>
+              <p className="text-2xl font-bold font-numeric text-emerald-400">{formatLKR(report.net_income_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">Distributable operating profit</p>
             </div>
           </div>

@@ -115,7 +115,7 @@ export const StockIssuesPage: React.FC = () => {
             <TrendingDown className="h-4 w-4" />
             <span>Shortages</span>
           </div>
-          <div className="text-2xl font-bold text-white">{shortages.length}</div>
+          <div className="text-2xl font-bold font-numeric tabular-nums text-white">{shortages.length}</div>
           <p className="text-xs text-rose-400 font-mono mt-1">
             Est. lost value: {formatLKR(totalLostValue)}
           </p>
@@ -125,7 +125,7 @@ export const StockIssuesPage: React.FC = () => {
             <TrendingUp className="h-4 w-4" />
             <span>Overages</span>
           </div>
-          <div className="text-2xl font-bold text-white">{overages.length}</div>
+          <div className="text-2xl font-bold font-numeric tabular-nums text-white">{overages.length}</div>
           <p className="text-xs text-muted-foreground">More stock than expected</p>
         </div>
         <div className="p-4 rounded-xl border border-amber-500/20 bg-card/60 glass-panel">
@@ -133,7 +133,7 @@ export const StockIssuesPage: React.FC = () => {
             <AlertTriangle className="h-4 w-4" />
             <span>Unresolved</span>
           </div>
-          <div className="text-2xl font-bold text-white">{unresolvedCount}</div>
+          <div className="text-2xl font-bold font-numeric tabular-nums text-white">{unresolvedCount}</div>
           <p className="text-xs text-muted-foreground">Need investigation</p>
         </div>
       </div>

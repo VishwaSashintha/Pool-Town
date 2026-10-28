@@ -158,7 +158,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-bold tracking-tight text-white truncate font-display">
+            <h1 className="text-sm font-bold tracking-tight text-white truncate">
               POOL TOWN
             </h1>
             <p className="text-[11px] font-medium text-slate-400 truncate">
@@ -227,7 +227,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-3">
             {/* Live Clock */}
             <div
-              className="flex items-center gap-1.5 text-xs font-mono font-medium px-3 py-1 rounded-md"
+              className="flex items-center gap-1.5 text-xs font-numeric font-bold tabular-nums px-3 py-1 rounded-md"
               style={{ backgroundColor: "#0F172A", color: "#94A3B8", border: "1px solid #334155" }}
             >
               <Clock className="w-3.5 h-3.5" style={{ color: "#38BDF8" }} />

@@ -218,7 +218,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Gross Operating Revenue</span>
                 <DollarSign className="w-4 h-4 text-emerald-400" />
               </div>
-              <p className="text-2xl font-bold text-white">{formatLKR(report.total_revenue_paise)}</p>
+              <p className="text-2xl font-bold font-numeric text-white">{formatLKR(report.total_revenue_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">Pool, PS4 & drinks sales</p>
             </div>
 
@@ -227,7 +227,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Operating Expenses</span>
                 <Receipt className="w-4 h-4 text-rose-400" />
               </div>
-              <p className="text-2xl font-bold text-rose-400">{formatLKR(report.total_expenses_paise)}</p>
+              <p className="text-2xl font-bold font-numeric text-rose-400">{formatLKR(report.total_expenses_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">Paid & accrued expense bills</p>
             </div>
 
@@ -236,7 +236,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Net Operating Profit</span>
                 <TrendingUp className="w-4 h-4 text-sky-400" />
               </div>
-              <p className="text-2xl font-bold text-emerald-400">{formatLKR(report.net_income_paise)}</p>
+              <p className="text-2xl font-bold font-numeric text-emerald-400">{formatLKR(report.net_income_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">Available for partner distribution</p>
             </div>
 
@@ -245,7 +245,7 @@ export const MonthlyReportPage: React.FC = () => {
                 <span className="text-xs font-medium uppercase tracking-wider">Savings Reserve (40%)</span>
                 <PiggyBank className="w-4 h-4 text-indigo-400" />
               </div>
-              <p className="text-2xl font-bold text-indigo-400">
+              <p className="text-2xl font-bold font-numeric text-indigo-400">
                 {formatLKR(report.profit_allocation.savings_paise)}
               </p>
               <p className="text-xs text-slate-500 mt-1">Target Rs. 100,000 / month</p>

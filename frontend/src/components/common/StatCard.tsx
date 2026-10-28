@@ -43,7 +43,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         </div>
       </div>
       <div className="mt-3">
-        <div className="text-2xl font-bold tracking-tight text-foreground">{value}</div>
+        <div className="text-2xl font-bold font-numeric tracking-tight text-foreground">{value}</div>
         {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
         {trend && (
           <p

@@ -1334,9 +1334,9 @@ export const AccountsPage: React.FC = () => {
                       <MoneyDisplay paise={openingData.breakdown?.owner_capital?.total_paise || 0} />
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
-                      <div className="flex justify-between"><span>Akash:</span><span className="text-white">{formatLKR(openingData.breakdown?.owner_capital?.akash_paise || 0)}</span></div>
-                      <div className="flex justify-between"><span>Pasan:</span><span className="text-white">{formatLKR(openingData.breakdown?.owner_capital?.pasan_paise || 0)}</span></div>
-                      <div className="flex justify-between"><span>Vishwa:</span><span className="text-white">{formatLKR(openingData.breakdown?.owner_capital?.vishwa_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Akash:</span><span className="text-white font-numeric font-bold">{formatLKR(openingData.breakdown?.owner_capital?.akash_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Pasan:</span><span className="text-white font-numeric font-bold">{formatLKR(openingData.breakdown?.owner_capital?.pasan_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Vishwa:</span><span className="text-white font-numeric font-bold">{formatLKR(openingData.breakdown?.owner_capital?.vishwa_paise || 0)}</span></div>
                     </div>
                   </div>
 
@@ -1349,8 +1349,8 @@ export const AccountsPage: React.FC = () => {
                       <MoneyDisplay paise={openingData.breakdown?.relatives_contributions?.total_paise || 0} />
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
-                      <div className="flex justify-between"><span>Gift/Equity:</span><span className="text-emerald-400">{formatLKR(openingData.breakdown?.relatives_contributions?.gift_equity_paise || 0)}</span></div>
-                      <div className="flex justify-between"><span>Repayable Loan:</span><span className="text-amber-400">{formatLKR(openingData.breakdown?.relatives_contributions?.loan_liability_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Gift/Equity:</span><span className="text-emerald-400 font-numeric font-bold">{formatLKR(openingData.breakdown?.relatives_contributions?.gift_equity_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Repayable Loan:</span><span className="text-amber-400 font-numeric font-bold">{formatLKR(openingData.breakdown?.relatives_contributions?.loan_liability_paise || 0)}</span></div>
                     </div>
                   </div>
 
@@ -1363,8 +1363,8 @@ export const AccountsPage: React.FC = () => {
                       <MoneyDisplay paise={openingData.breakdown?.assets?.total_savings_paise || 0} />
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
-                      <div className="flex justify-between"><span>Savings Cash:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.savings_cash_paise || 0)}</span></div>
-                      <div className="flex justify-between"><span>Savings Bank:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.savings_bank_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Savings Cash:</span><span className="text-white font-numeric font-bold">{formatLKR(openingData.breakdown?.assets?.savings_cash_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Savings Bank:</span><span className="text-white font-numeric font-bold">{formatLKR(openingData.breakdown?.assets?.savings_bank_paise || 0)}</span></div>
                     </div>
                   </div>
 
@@ -1377,8 +1377,8 @@ export const AccountsPage: React.FC = () => {
                       <MoneyDisplay paise={(openingData.breakdown?.assets?.cash_in_hand_paise || 0) + (openingData.breakdown?.assets?.main_bank_paise || 0)} />
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
-                      <div className="flex justify-between"><span>Cash in Hand:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.cash_in_hand_paise || 0)}</span></div>
-                      <div className="flex justify-between"><span>Main Bank:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.main_bank_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Cash in Hand:</span><span className="text-white font-numeric font-bold">{formatLKR(openingData.breakdown?.assets?.cash_in_hand_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Main Bank:</span><span className="text-white font-numeric font-bold">{formatLKR(openingData.breakdown?.assets?.main_bank_paise || 0)}</span></div>
                     </div>
                   </div>
                 </div>

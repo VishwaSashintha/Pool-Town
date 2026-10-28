@@ -410,7 +410,7 @@ export const SavingsPage: React.FC = () => {
             </span>
             <PiggyBank className="w-5 h-5 text-indigo-400" />
           </div>
-          <p className="text-3xl font-extrabold text-white tracking-tight">{formatLKR(totalSavings)}</p>
+          <p className="text-3xl font-extrabold font-numeric text-white tracking-tight">{formatLKR(totalSavings)}</p>
           <div className="flex items-center gap-1.5 text-xs text-indigo-300/80">
             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
             <span>Savings Cash + Savings Bank</span>
@@ -426,7 +426,7 @@ export const SavingsPage: React.FC = () => {
             <span className="text-xs font-semibold uppercase tracking-wider">Savings held as Cash</span>
             <Wallet className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-emerald-400">{formatLKR(savingsInCash)}</p>
+          <p className="text-2xl font-bold font-numeric text-emerald-400">{formatLKR(savingsInCash)}</p>
           <p className="text-xs text-slate-400">Physical savings cash in safety locker</p>
         </div>
 
@@ -439,7 +439,7 @@ export const SavingsPage: React.FC = () => {
             <span className="text-xs font-semibold uppercase tracking-wider">Savings held in Bank</span>
             <Building className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-bold text-sky-400">{formatLKR(savingsInBank)}</p>
+          <p className="text-2xl font-bold font-numeric text-sky-400">{formatLKR(savingsInBank)}</p>
           <p className="text-xs text-slate-400">Dedicated savings bank reserve</p>
         </div>
 
@@ -452,7 +452,7 @@ export const SavingsPage: React.FC = () => {
             <span className="text-xs font-semibold uppercase tracking-wider">40% Monthly Net Profit</span>
             <TrendingUp className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-bold text-amber-400">{formatLKR(currentMonthAllocated)}</p>
+          <p className="text-2xl font-bold font-numeric text-amber-400">{formatLKR(currentMonthAllocated)}</p>
           <button
             onClick={openMonthlyAllocationModal}
             className="text-xs font-medium text-amber-300 hover:text-amber-200 underline flex items-center gap-1 cursor-pointer"

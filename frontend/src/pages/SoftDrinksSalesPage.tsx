@@ -290,22 +290,22 @@ export const SoftDrinksSalesPage: React.FC = () => {
 
             {/* Sale Summary */}
             {totalSalesItems > 0 && (
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs font-mono">
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Total bottles sold:</span>
-                  <span className="font-bold text-foreground">{totalSalesItems}</span>
+                  <span className="font-bold font-numeric tabular-nums text-foreground">{totalSalesItems}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Total cost of goods:</span>
-                  <span>{formatLKR(totalCost)}</span>
+                  <span className="font-numeric font-bold tabular-nums">{formatLKR(totalCost)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-base border-t border-amber-500/30 pt-2">
-                  <span className="font-sans text-foreground">Total revenue:</span>
-                  <span className="text-amber-400">{formatLKR(totalRevenue)}</span>
+                  <span className="text-foreground">Total revenue:</span>
+                  <span className="text-amber-400 font-numeric font-bold tabular-nums">{formatLKR(totalRevenue)}</span>
                 </div>
                 <div className="flex justify-between text-emerald-400">
                   <span>Gross profit:</span>
-                  <span className="font-bold">{formatLKR(totalProfit)}</span>
+                  <span className="font-bold font-numeric tabular-nums">{formatLKR(totalProfit)}</span>
                 </div>
               </div>
             )}

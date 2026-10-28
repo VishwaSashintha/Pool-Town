@@ -157,7 +157,7 @@ export const OutstandingPaymentsPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Total Outstanding AR</span>
             <AlertCircle className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-bold text-amber-400">{formatLKR(totalOutstanding)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-amber-400">{formatLKR(totalOutstanding)}</p>
           <p className="text-xs text-slate-500 mt-1">{sessions.length} unpaid session(s)</p>
         </div>
 
@@ -166,7 +166,7 @@ export const OutstandingPaymentsPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Pool Board AR</span>
             <CircleDot className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-white">{formatLKR(poolOutstanding)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-white">{formatLKR(poolOutstanding)}</p>
           <p className="text-xs text-slate-500 mt-1">
             {sessions.filter((s: OutstandingSession) => s.session_type === "pool").length} pool session(s)
           </p>
@@ -177,7 +177,7 @@ export const OutstandingPaymentsPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">PS4 Gaming AR</span>
             <Gamepad2 className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-bold text-white">{formatLKR(ps4Outstanding)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-white">{formatLKR(ps4Outstanding)}</p>
           <p className="text-xs text-slate-500 mt-1">
             {sessions.filter((s: OutstandingSession) => s.session_type === "ps4").length} gaming session(s)
           </p>
@@ -188,7 +188,7 @@ export const OutstandingPaymentsPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Indebted Players</span>
             <User className="w-4 h-4 text-indigo-400" />
           </div>
-          <p className="text-2xl font-bold text-white">{uniquePlayers}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-white">{uniquePlayers}</p>
           <p className="text-xs text-slate-500 mt-1">Unique players with dues</p>
         </div>
       </div>

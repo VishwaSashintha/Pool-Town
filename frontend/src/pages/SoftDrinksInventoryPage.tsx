@@ -191,7 +191,7 @@ export const SoftDrinksInventoryPage: React.FC = () => {
             <Coffee className="h-4 w-4" />
             <span>Total Flavours</span>
           </div>
-          <div className="text-2xl font-bold text-white">{products.length}</div>
+          <div className="text-2xl font-bold font-numeric tabular-nums text-white">{products.length}</div>
           <p className="text-xs text-muted-foreground">{products.filter(p => p.is_active).length} active</p>
         </div>
         <div className="p-4 rounded-xl border border-border/70 bg-card/60 glass-panel">
@@ -199,7 +199,7 @@ export const SoftDrinksInventoryPage: React.FC = () => {
             <Package className="h-4 w-4" />
             <span>Total Stock Value</span>
           </div>
-          <div className="text-2xl font-bold text-white">{formatLKR(totalStockValue)}</div>
+          <div className="text-2xl font-bold font-numeric tabular-nums text-white">{formatLKR(totalStockValue)}</div>
           <p className="text-xs text-muted-foreground">At purchase cost</p>
         </div>
         <div className="p-4 rounded-xl border border-border/70 bg-card/60 glass-panel">
@@ -207,7 +207,7 @@ export const SoftDrinksInventoryPage: React.FC = () => {
             <AlertCircle className="h-4 w-4" />
             <span>Low Stock Alert</span>
           </div>
-          <div className="text-2xl font-bold text-white">{lowStockProducts.length}</div>
+          <div className="text-2xl font-bold font-numeric tabular-nums text-white">{lowStockProducts.length}</div>
           <p className="text-xs text-muted-foreground">5 bottles or fewer</p>
         </div>
       </div>

@@ -140,37 +140,37 @@ export const DailyReportPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gross Day Revenue</span>
-              <div className="text-3xl font-extrabold text-white mt-1">
+              <div className="text-3xl font-bold font-numeric text-white mt-1">
                 {formatLKR(report.total_revenue_paise)}
               </div>
               <div className="text-xs text-slate-400 mt-2 flex items-center gap-3">
-                <span>Pool: {formatLKR(report.pool_revenue_paise)}</span>
+                <span>Pool: <strong className="font-numeric font-bold text-slate-200">{formatLKR(report.pool_revenue_paise)}</strong></span>
                 <span>•</span>
-                <span>PS4: {formatLKR(report.ps4_revenue_paise)}</span>
+                <span>PS4: <strong className="font-numeric font-bold text-slate-200">{formatLKR(report.ps4_revenue_paise)}</strong></span>
                 <span>•</span>
-                <span>Drinks: {formatLKR(report.drinks_revenue_paise)}</span>
+                <span>Drinks: <strong className="font-numeric font-bold text-slate-200">{formatLKR(report.drinks_revenue_paise)}</strong></span>
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Day Collections</span>
-              <div className="text-3xl font-extrabold text-emerald-400 mt-1">
+              <div className="text-3xl font-bold font-numeric text-emerald-400 mt-1">
                 {formatLKR(report.total_collected_paise)}
               </div>
               <div className="text-xs text-slate-400 mt-2 flex items-center gap-3">
-                <span>Cash: {formatLKR(report.cash_collected_paise)}</span>
+                <span>Cash: <strong className="font-numeric font-bold text-emerald-300">{formatLKR(report.cash_collected_paise)}</strong></span>
                 <span>•</span>
-                <span>Bank: {formatLKR(report.bank_collected_paise)}</span>
+                <span>Bank: <strong className="font-numeric font-bold text-sky-300">{formatLKR(report.bank_collected_paise)}</strong></span>
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Net Operating Surplus</span>
-              <div className="text-3xl font-extrabold text-sky-400 mt-1">
+              <div className="text-3xl font-bold font-numeric text-sky-400 mt-1">
                 {formatLKR(report.net_income_paise)}
               </div>
               <div className="text-xs text-slate-400 mt-2">
-                Expenses: {formatLKR(report.total_expenses_paise)}
+                Expenses: <strong className="font-numeric font-bold text-rose-400">{formatLKR(report.total_expenses_paise)}</strong>
               </div>
             </div>
           </div>
@@ -183,11 +183,11 @@ export const DailyReportPage: React.FC = () => {
                 <span className="text-xs font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
                   <CircleDot className="w-4 h-4" /> Pool Board Operations
                 </span>
-                <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-mono">
+                <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-numeric font-bold">
                   {report.pool_sessions} sessions
                 </span>
               </div>
-              <p className="text-xl font-bold text-white mt-1">{formatLKR(report.pool_revenue_paise)}</p>
+              <p className="text-xl font-bold font-numeric text-white mt-1">{formatLKR(report.pool_revenue_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">First hour Rs. 500 + Rs. 300 / 30 min block</p>
             </div>
 
@@ -197,11 +197,11 @@ export const DailyReportPage: React.FC = () => {
                 <span className="text-xs font-semibold uppercase text-sky-400 flex items-center gap-1.5">
                   <Gamepad2 className="w-4 h-4" /> PS4 Gaming Operations
                 </span>
-                <span className="text-xs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-mono">
+                <span className="text-xs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-numeric font-bold">
                   {report.ps4_sessions} sessions
                 </span>
               </div>
-              <p className="text-xl font-bold text-white mt-1">{formatLKR(report.ps4_revenue_paise)}</p>
+              <p className="text-xl font-bold font-numeric text-white mt-1">{formatLKR(report.ps4_revenue_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">1P: Rs. 400/hr • 2P: Rs. 500/hr</p>
             </div>
 
@@ -211,11 +211,11 @@ export const DailyReportPage: React.FC = () => {
                 <span className="text-xs font-semibold uppercase text-amber-400 flex items-center gap-1.5">
                   <Coffee className="w-4 h-4" /> Soft Drinks Sales
                 </span>
-                <span className="text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-mono">
+                <span className="text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-numeric font-bold">
                   {report.drinks_bottles_sold} bottles
                 </span>
               </div>
-              <p className="text-xl font-bold text-white mt-1">{formatLKR(report.drinks_revenue_paise)}</p>
+              <p className="text-xl font-bold font-numeric text-white mt-1">{formatLKR(report.drinks_revenue_paise)}</p>
               <p className="text-xs text-slate-500 mt-1">Beverage counter sales</p>
             </div>
           </div>

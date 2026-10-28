@@ -191,7 +191,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
         </div>
 
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-xl sm:text-2xl font-bold metric-value tracking-tight text-slate-50 tabular-nums">
+          <p className="text-xl sm:text-2xl font-bold font-numeric metric-value tracking-tight text-slate-50 tabular-nums">
             {value}
           </p>
           {sparkline && <MiniSparkline data={sparkline} color={accentColor} />}
@@ -261,7 +261,7 @@ const AnalyticsTooltip: React.FC<any> = ({ active, payload, label }) => {
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
               <span className="text-slate-400">{entry.name}:</span>
             </div>
-            <span className="font-mono font-semibold text-slate-100 tabular-nums">
+            <span className="font-numeric font-bold text-slate-100 tabular-nums">
               {entry.unit === "count" ? entry.value : formatLKR(entry.value * 100)}
             </span>
           </div>
@@ -785,14 +785,14 @@ export const DashboardPage: React.FC = () => {
                   <XAxis
                     dataKey="label"
                     stroke="#64748B"
-                    tick={{ fill: "#94A3B8", fontSize: 11 }}
+                    tick={{ fill: "#94A3B8", fontSize: 11, fontFamily: "Montserrat", fontWeight: 600 }}
                     tickLine={false}
                     axisLine={{ stroke: "#334155" }}
                   />
 
                   <YAxis
                     stroke="#64748B"
-                    tick={{ fill: "#94A3B8", fontSize: 11 }}
+                    tick={{ fill: "#94A3B8", fontSize: 11, fontFamily: "Montserrat", fontWeight: 700 }}
                     tickLine={false}
                     axisLine={{ stroke: "#334155" }}
                     tickFormatter={val => (val >= 1000 ? `Rs.${(val / 1000).toFixed(0)}k` : `Rs.${val}`)}
@@ -1064,13 +1064,13 @@ export const DashboardPage: React.FC = () => {
                 <XAxis
                   dataKey="name"
                   stroke="#64748B"
-                  tick={{ fill: "#94A3B8", fontSize: 12, fontWeight: 500 }}
+                  tick={{ fill: "#94A3B8", fontSize: 12, fontWeight: 500, fontFamily: "Poppins" }}
                   tickLine={false}
                   axisLine={{ stroke: "#334155" }}
                 />
                 <YAxis
                   stroke="#64748B"
-                  tick={{ fill: "#94A3B8", fontSize: 11 }}
+                  tick={{ fill: "#94A3B8", fontSize: 11, fontFamily: "Montserrat", fontWeight: 700 }}
                   tickLine={false}
                   axisLine={{ stroke: "#334155" }}
                   tickFormatter={val =>

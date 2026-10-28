@@ -241,7 +241,7 @@ export const DamageChargesPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Total Damage Charged</span>
             <ShieldAlert className="w-4 h-4 text-rose-400" />
           </div>
-          <p className="text-2xl font-bold text-white">{formatLKR(totalCharged)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-white">{formatLKR(totalCharged)}</p>
           <p className="text-xs text-slate-500 mt-1">{damageCharges.length} incident(s) recorded</p>
         </div>
 
@@ -250,7 +250,7 @@ export const DamageChargesPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Collected / Recovered</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-emerald-400">{formatLKR(totalCollected)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-emerald-400">{formatLKR(totalCollected)}</p>
           <p className="text-xs text-slate-500 mt-1">Cash & bank recoveries</p>
         </div>
 
@@ -259,7 +259,7 @@ export const DamageChargesPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Outstanding Dues</span>
             <AlertCircle className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-bold text-amber-400">{formatLKR(totalOutstanding)}</p>
+          <p className="text-2xl font-bold font-numeric tabular-nums text-amber-400">{formatLKR(totalOutstanding)}</p>
           <p className="text-xs text-slate-500 mt-1">{activeCount} pending settlement(s)</p>
         </div>
 
@@ -268,7 +268,7 @@ export const DamageChargesPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Recovery Rate</span>
             <DollarSign className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-bold text-sky-400">
+          <p className="text-2xl font-bold font-numeric tabular-nums text-sky-400">
             {totalCharged > 0 ? `${Math.round((totalCollected / totalCharged) * 100)}%` : "100%"}
           </p>
           <p className="text-xs text-slate-500 mt-1">Of assessed player damage</p>

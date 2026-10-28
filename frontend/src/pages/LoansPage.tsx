@@ -247,7 +247,7 @@ export const LoansPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Total Outstanding Debt</span>
             <AlertCircle className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-bold text-amber-400">{formatLKR(totalOutstanding)}</p>
+          <p className="text-2xl font-bold font-numeric text-amber-400">{formatLKR(totalOutstanding)}</p>
           <p className="text-xs text-slate-500 mt-1">{activeLoans.length} active liability loan(s)</p>
         </div>
 
@@ -256,7 +256,7 @@ export const LoansPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Principal Repaid</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-white">{formatLKR(totalRepaid)}</p>
+          <p className="text-2xl font-bold font-numeric text-white">{formatLKR(totalRepaid)}</p>
           <p className="text-xs text-slate-500 mt-1">Total principal cleared</p>
         </div>
 
@@ -265,7 +265,7 @@ export const LoansPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Partner Borrowings</span>
             <User className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-bold text-sky-400">
+          <p className="text-2xl font-bold font-numeric text-sky-400">
             {formatLKR(loans.filter((l: Loan) => l.loan_type === "owner").reduce((s: number, l: Loan) => s + (l.current_outstanding_paise || 0), 0))}
           </p>
           <p className="text-xs text-slate-500 mt-1">From Akash, Pasan, or Vishwa</p>
@@ -276,7 +276,7 @@ export const LoansPage: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wider">Third-Party Debt</span>
             <DollarSign className="w-4 h-4 text-rose-400" />
           </div>
-          <p className="text-2xl font-bold text-white">
+          <p className="text-2xl font-bold font-numeric text-white">
             {formatLKR(loans.filter((l: Loan) => l.loan_type === "external" || l.loan_type === "bank").reduce((s: number, l: Loan) => s + (l.current_outstanding_paise || 0), 0))}
           </p>
           <p className="text-xs text-slate-500 mt-1">External borrowings</p>

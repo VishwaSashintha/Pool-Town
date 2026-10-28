@@ -486,7 +486,7 @@ export const PS4SessionsPage: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Rate: Rs. {playerCount === 1 ? "400" : "500"}/hour
+                    Rate: <span className="font-numeric font-bold">Rs. {playerCount === 1 ? "400" : "500"}/hour</span>
                   </p>
                 </div>
               </div>
@@ -548,7 +548,7 @@ export const PS4SessionsPage: React.FC = () => {
                         }`}
                       >
                         <span>{d.label}</span>
-                        <span className={`text-[10px] ${minutes === d.minutes ? "text-blue-200" : "text-muted-foreground/60"}`}>
+                        <span className={`text-[10px] font-numeric font-bold tabular-nums ${minutes === d.minutes ? "text-blue-200" : "text-muted-foreground/60"}`}>
                           Rs. {price.toLocaleString()}
                         </span>
                       </button>
@@ -561,18 +561,18 @@ export const PS4SessionsPage: React.FC = () => {
               </div>
 
               {/* Price summary */}
-              <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/80 space-y-1.5 font-mono text-xs">
+              <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/80 space-y-1.5 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Time played:</span>
-                  <span className="font-semibold text-foreground">{minutesToLabel(minutes)}</span>
+                  <span className="font-semibold font-numeric tabular-nums text-foreground">{minutesToLabel(minutes)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Players:</span>
-                  <span className="font-semibold text-foreground">{playerCount} · Rs. {playerCount === 1 ? "400" : "500"}/hr</span>
+                  <span className="font-semibold text-foreground"><span className="font-numeric font-bold">{playerCount}</span> · <span className="font-numeric font-bold">Rs. {playerCount === 1 ? "400" : "500"}</span>/hr</span>
                 </div>
                 <div className="flex justify-between items-center pt-1.5 border-t border-border/40">
                   <span className="font-sans font-medium text-foreground text-sm">Total price:</span>
-                  <span className="text-lg font-bold text-blue-400">{formatLKR(finalChargePaise)}</span>
+                  <span className="text-lg font-bold font-numeric tabular-nums text-blue-400">{formatLKR(finalChargePaise)}</span>
                 </div>
               </div>
 

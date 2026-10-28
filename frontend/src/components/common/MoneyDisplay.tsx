@@ -25,7 +25,7 @@ export const MoneyDisplay: React.FC<MoneyDisplayProps> = ({
   }
 
   return (
-    <span className={`font-mono font-medium tracking-tight ${colorClass} ${className}`}>
+    <span className={`font-numeric font-bold tabular-nums tracking-tight ${colorClass} ${className}`}>
       {formatLKR(paise, showDecimals)}
     </span>
   );

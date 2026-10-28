@@ -55,9 +55,10 @@ export default {
         },
       },
       fontFamily: {
-        sans:    ['Poppins', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans:    ['Poppins', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         numeric: ['Montserrat', 'sans-serif'],
-        mono:    ['Roboto Mono', 'Courier New', 'monospace'],
+        mono:    ['Montserrat', 'sans-serif'],
+        display: ['Poppins', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',
