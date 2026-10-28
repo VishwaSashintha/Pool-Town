@@ -50,7 +50,7 @@ build/
 *.local
 
 # IDE
-.vscode/settings.json
+.vscode/
 .idea/
 *.swp
 *.swo
@@ -72,6 +72,12 @@ htmlcov/
 .coverage
 coverage.xml
 *.coverage
+
+# Local exports, scratch files, and backups
+*.xlsx
+*.csv
+*.bak
+scratch/
 
 # Keep placeholder files
 !data/.gitkeep
