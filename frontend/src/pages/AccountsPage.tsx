@@ -19,6 +19,11 @@ import {
   Building,
   FileSpreadsheet,
   Coins,
+  Users,
+  Plus,
+  Trash2,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { api } from "@/api/client";
 import { MoneyDisplay } from "@/components/common/MoneyDisplay";
@@ -75,6 +80,46 @@ export const AccountsPage: React.FC = () => {
   });
   const [reopenReason, setReopenReason] = useState("");
   const [reopenUser, setReopenUser] = useState("Admin");
+
+  // Opening Balance Setup State
+  const [openingDate, setOpeningDate] = useState(new Date().toISOString().split("T")[0]);
+  const [equalCapitalRupees, setEqualCapitalRupees] = useState("");
+  const [akashCapitalRs, setAkashCapitalRs] = useState("");
+  const [akashDest, setAkashDest] = useState("1002");
+  const [pasanCapitalRs, setPasanCapitalRs] = useState("");
+  const [pasanDest, setPasanDest] = useState("1002");
+  const [vishwaCapitalRs, setVishwaCapitalRs] = useState("");
+  const [vishwaDest, setVishwaDest] = useState("1001");
+
+  interface RelativeRow {
+    id: string;
+    name: string;
+    amountRs: string;
+    destination: "1001" | "1002" | "1003" | "1004";
+    classification: "GIFT" | "LOAN" | "PENDING";
+    notes: string;
+  }
+  const [relatives, setRelatives] = useState<RelativeRow[]>([
+    {
+      id: "1",
+      name: "",
+      amountRs: "",
+      destination: "1004",
+      classification: "GIFT",
+      notes: "Opening day family blessing contribution",
+    },
+  ]);
+
+  const [fixedAssetsRs, setFixedAssetsRs] = useState("");
+  const [openingLoanRs, setOpeningLoanRs] = useState("");
+  const [openingLoanLender, setOpeningLoanLender] = useState("");
+  const [setupNotes, setSetupNotes] = useState("Pool Town business opening financial position");
+  const [setupError, setSetupError] = useState("");
+  const [setupSuccess, setSetupSuccess] = useState("");
+
+  const [isReverseModalOpen, setIsReverseModalOpen] = useState(false);
+  const [reverseReason, setReverseReason] = useState("");
+  const [isConfirmSetupModalOpen, setIsConfirmSetupModalOpen] = useState(false);
 
   // Queries
   const { data: accounts = [] } = useQuery({
@@ -234,6 +279,157 @@ export const AccountsPage: React.FC = () => {
     },
   });
 
+  const postOpeningSetupMutation = useMutation({
+    mutationFn: (payload: any) => api.accounts.postOpeningBalancesSetup(payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["opening-balances"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["financialAccounts"] });
+      queryClient.invalidateQueries({ queryKey: ["trial-balance"] });
+      queryClient.invalidateQueries({ queryKey: ["owners"] });
+      queryClient.invalidateQueries({ queryKey: ["owner-transactions"] });
+      setIsConfirmSetupModalOpen(false);
+      setSetupError("");
+      setSetupSuccess(`Opening balances posted successfully under reference ${data.reference}!`);
+      setTimeout(() => setSetupSuccess(""), 6000);
+    },
+    onError: (err: any) => {
+      setSetupError(err.message || "Failed to post opening balances");
+      setIsConfirmSetupModalOpen(false);
+    },
+  });
+
+  const reverseOpeningMutation = useMutation({
+    mutationFn: () =>
+      api.accounts.reverseOpeningBalances({
+        reason: reverseReason.trim() || "Resetting opening balances for fresh start",
+        reversed_by: "Admin",
+      }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["opening-balances"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["financialAccounts"] });
+      queryClient.invalidateQueries({ queryKey: ["trial-balance"] });
+      queryClient.invalidateQueries({ queryKey: ["owners"] });
+      queryClient.invalidateQueries({ queryKey: ["owner-transactions"] });
+      setIsReverseModalOpen(false);
+      setReverseReason("");
+      setSetupSuccess(data.message || "Opening balances reversed successfully. You can now enter fresh opening figures.");
+      setTimeout(() => setSetupSuccess(""), 6000);
+    },
+    onError: (err: any) => {
+      alert(err.message || "Failed to reverse opening balances");
+    },
+  });
+
+  const handleApplyEqualCapital = () => {
+    if (!equalCapitalRupees || Number(equalCapitalRupees) <= 0) return;
+    setAkashCapitalRs(equalCapitalRupees);
+    setPasanCapitalRs(equalCapitalRupees);
+    setVishwaCapitalRs(equalCapitalRupees);
+  };
+
+  const handleAddRelativeRow = () => {
+    setRelatives((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name: "",
+        amountRs: "",
+        destination: "1004",
+        classification: "GIFT",
+        notes: "",
+      },
+    ]);
+  };
+
+  const handleRemoveRelativeRow = (id: string) => {
+    setRelatives((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  };
+
+  const handleUpdateRelativeRow = (id: string, field: keyof RelativeRow, value: any) => {
+    setRelatives((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  // Capital amounts
+  const akashPaise = rupeesToPaise(Number(akashCapitalRs) || 0);
+  const pasanPaise = rupeesToPaise(Number(pasanCapitalRs) || 0);
+  const vishwaPaise = rupeesToPaise(Number(vishwaCapitalRs) || 0);
+  const totalOwnerCapitalPaise = akashPaise + pasanPaise + vishwaPaise;
+
+  // Relatives amounts
+  const relativesGiftPaise = relatives
+    .filter((r) => r.classification === "GIFT" && Number(r.amountRs) > 0)
+    .reduce((sum, r) => sum + rupeesToPaise(Number(r.amountRs)), 0);
+
+  const relativesLoanPaise = relatives
+    .filter((r) => (r.classification === "LOAN" || r.classification === "PENDING") && Number(r.amountRs) > 0)
+    .reduce((sum, r) => sum + rupeesToPaise(Number(r.amountRs)), 0);
+
+  const totalRelativesFundingPaise = relativesGiftPaise + relativesLoanPaise;
+
+  // Assets routing
+  let openingCashDrPaise = 0;
+  let openingBankDrPaise = 0;
+  let openingSavingsCashDrPaise = 0;
+  let openingSavingsBankDrPaise = 0;
+
+  if (akashDest === "1001") openingCashDrPaise += akashPaise; else openingBankDrPaise += akashPaise;
+  if (pasanDest === "1001") openingCashDrPaise += pasanPaise; else openingBankDrPaise += pasanPaise;
+  if (vishwaDest === "1001") openingCashDrPaise += vishwaPaise; else openingBankDrPaise += vishwaPaise;
+
+  relatives.forEach((r) => {
+    const amt = rupeesToPaise(Number(r.amountRs) || 0);
+    if (r.destination === "1001") openingCashDrPaise += amt;
+    else if (r.destination === "1002") openingBankDrPaise += amt;
+    else if (r.destination === "1003") openingSavingsBankDrPaise += amt;
+    else if (r.destination === "1004") openingSavingsCashDrPaise += amt;
+  });
+
+  const fixedAssetsPaise = rupeesToPaise(Number(fixedAssetsRs) || 0);
+  const openingLoanPaise = rupeesToPaise(Number(openingLoanRs) || 0);
+
+  const totalOpeningSavingsCalcPaise = openingSavingsCashDrPaise + openingSavingsBankDrPaise;
+
+  const totalOpeningDebitsPaise =
+    openingCashDrPaise + openingBankDrPaise + openingSavingsCashDrPaise + openingSavingsBankDrPaise + fixedAssetsPaise;
+  const totalOpeningCreditsPaise =
+    totalOwnerCapitalPaise + relativesGiftPaise + relativesLoanPaise + openingLoanPaise;
+  const openingImbalancePaise = totalOpeningDebitsPaise - totalOpeningCreditsPaise;
+  const isOpeningSetupBalanced = totalOpeningDebitsPaise > 0 && openingImbalancePaise === 0;
+
+  const handlePostOpeningSetup = () => {
+    if (!isOpeningSetupBalanced) return;
+    const payload = {
+      opening_date: openingDate,
+      owner_contributions: [
+        { owner_name: "Akash", amount_paise: akashPaise, destination_code: akashDest, notes: "Akash initial opening capital" },
+        { owner_name: "Pasan", amount_paise: pasanPaise, destination_code: pasanDest, notes: "Pasan initial opening capital" },
+        { owner_name: "Vishwa", amount_paise: vishwaPaise, destination_code: vishwaDest, notes: "Vishwa initial opening capital" },
+      ],
+      relative_contributions: relatives
+        .filter((r) => Number(r.amountRs) > 0 && r.name.trim())
+        .map((r) => ({
+          contributor_name: r.name.trim(),
+          amount_paise: rupeesToPaise(Number(r.amountRs)),
+          destination_code: r.destination,
+          classification: r.classification,
+          purpose: r.notes.trim() || "Opening day family contribution",
+          notes: r.notes.trim() || undefined,
+        })),
+      direct_assets: fixedAssetsPaise > 0 ? [
+        { account_code: "1030", name: "Fixed Assets & Equipment", amount_paise: fixedAssetsPaise, notes: "Opening pool tables, PS4 consoles & hall fittings" }
+      ] : [],
+      opening_liabilities: openingLoanPaise > 0 ? [
+        { account_code: "2010", lender_or_creditor: openingLoanLender.trim() || "Opening Business Loan", amount_paise: openingLoanPaise, notes: "Opening business loan" }
+      ] : [],
+      notes: setupNotes.trim() || "Opening balance setup",
+    };
+    postOpeningSetupMutation.mutate(payload);
+  };
+
   // Calculate trial balance totals
   const totalDebitsPaise = trialBalance.reduce((acc, r) => acc + r.total_debit_paise, 0);
   const totalCreditsPaise = trialBalance.reduce((acc, r) => acc + r.total_credit_paise, 0);
@@ -346,13 +542,43 @@ export const AccountsPage: React.FC = () => {
           }`}
         >
           <FileCheck className="h-4 w-4" />
-          <span>Opening Position (31 Dec 2025)</span>
+          <span>Opening Balance Setup</span>
+          <span
+            className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+              openingData?.posted
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+            }`}
+          >
+            {openingData?.posted ? "Confirmed" : "Setup Required"}
+          </span>
         </button>
       </div>
 
       {/* TAB 1: TREASURY & GENERAL LEDGER */}
       {activeTab === "treasury" && (
         <div className="space-y-8">
+          {/* Fresh-Start / Setup Pending Banner */}
+          {!openingData?.posted && (
+            <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-200 shadow-sm animate-fadeIn">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                <div>
+                  <p className="font-semibold text-white">Fresh Start Notice: Opening Balances Not Yet Configured</p>
+                  <p className="text-amber-300/80 mt-0.5">
+                    All accounts currently show Rs. 0.00. Enter your verified opening capital, relatives' funding, and starting cash before daily operations.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab("opening")}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shrink-0 cursor-pointer transition shadow"
+              >
+                Set Up Opening Balances →
+              </button>
+            </div>
+          )}
+
           {/* ── Section A: Cash & Bank (Operating Money) ── */}
           <div className="space-y-3">
             <div>
@@ -1037,52 +1263,134 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: OPENING BALANCES (31 DEC 2025) */}
+      {/* TAB 4: OPENING BALANCES & FRESH START SETUP */}
       {activeTab === "opening" && (
         <div className="space-y-6">
-          <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-base text-white">Opening Balances as of 31 December 2025</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Establishes initial opening balance sheet before live operations begin
-                </p>
+          {setupSuccess && (
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-emerald-300 text-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                <span>{setupSuccess}</span>
               </div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                  openingData?.posted
-                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                    : "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                }`}
-              >
-                {openingData?.posted ? `Posted (${openingData.reference})` : "Not Yet Configured"}
-              </span>
+              <button onClick={() => setSetupSuccess("")} className="text-emerald-400 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
             </div>
+          )}
 
-            {openingData?.posted ? (
-              <div className="space-y-4 pt-2">
-                <div className="p-4 rounded-xl bg-secondary/30 border border-border/60 space-y-2 text-xs">
-                  <div className="flex justify-between font-mono">
-                    <span className="text-muted-foreground">Reference:</span>
-                    <span className="text-emerald-400 font-bold">{openingData.reference}</span>
+          {openingData?.posted ? (
+            /* POSTED VIEW */
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-emerald-500/30 bg-card/60 p-6 glass-panel space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                        <ShieldCheck className="h-4 w-4" />
+                      </span>
+                      <h3 className="font-bold text-base text-white">Opening Financial Position (Active)</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Business starting position recorded and locked into double-entry ledger.
+                    </p>
                   </div>
-                  <div className="flex justify-between font-mono">
-                    <span className="text-muted-foreground">Effective Date:</span>
-                    <span className="text-white">{openingData.entry_date}</span>
-                  </div>
-                  <div className="flex justify-between font-sans">
-                    <span className="text-muted-foreground">Description:</span>
-                    <span className="text-white">{openingData.description}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Posted ({openingData.reference})
+                    </span>
+                    <button
+                      onClick={() => setIsReverseModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs font-medium transition"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Re-open / Reset Setup
+                    </button>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-secondary/30 border border-border/60 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Opening Reference</span>
+                    <span className="font-mono font-bold text-emerald-400">{openingData.reference}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Opening Date</span>
+                    <span className="text-white font-medium">{openingData.entry_date}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground block text-[11px]">Notes</span>
+                    <span className="text-white truncate block">{openingData.description}</span>
+                  </div>
+                </div>
+
+                {/* KPI Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
+                  <div className="p-4 rounded-xl bg-secondary/30 border border-border/60">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>Total Owner Capital</span>
+                      <Users className="h-3.5 w-3.5 text-blue-400" />
+                    </div>
+                    <div className="text-lg font-bold text-white">
+                      <MoneyDisplay paise={openingData.breakdown?.owner_capital?.total_paise || 0} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
+                      <div className="flex justify-between"><span>Akash:</span><span className="text-white">{formatLKR(openingData.breakdown?.owner_capital?.akash_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Pasan:</span><span className="text-white">{formatLKR(openingData.breakdown?.owner_capital?.pasan_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Vishwa:</span><span className="text-white">{formatLKR(openingData.breakdown?.owner_capital?.vishwa_paise || 0)}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-secondary/30 border border-border/60">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>Relatives' Funding</span>
+                      <Banknote className="h-3.5 w-3.5 text-amber-400" />
+                    </div>
+                    <div className="text-lg font-bold text-white">
+                      <MoneyDisplay paise={openingData.breakdown?.relatives_contributions?.total_paise || 0} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
+                      <div className="flex justify-between"><span>Gift/Equity:</span><span className="text-emerald-400">{formatLKR(openingData.breakdown?.relatives_contributions?.gift_equity_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Repayable Loan:</span><span className="text-amber-400">{formatLKR(openingData.breakdown?.relatives_contributions?.loan_liability_paise || 0)}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-secondary/30 border border-border/60">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>Total Business Savings</span>
+                      <PiggyBank className="h-3.5 w-3.5 text-purple-400" />
+                    </div>
+                    <div className="text-lg font-bold text-purple-300">
+                      <MoneyDisplay paise={openingData.breakdown?.assets?.total_savings_paise || 0} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
+                      <div className="flex justify-between"><span>Savings Cash:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.savings_cash_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Savings Bank:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.savings_bank_paise || 0)}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-secondary/30 border border-border/60">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>Operating Cash & Bank</span>
+                      <Building className="h-3.5 w-3.5 text-emerald-400" />
+                    </div>
+                    <div className="text-lg font-bold text-emerald-300">
+                      <MoneyDisplay paise={(openingData.breakdown?.assets?.cash_in_hand_paise || 0) + (openingData.breakdown?.assets?.main_bank_paise || 0)} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
+                      <div className="flex justify-between"><span>Cash in Hand:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.cash_in_hand_paise || 0)}</span></div>
+                      <div className="flex justify-between"><span>Main Bank:</span><span className="text-white">{formatLKR(openingData.breakdown?.assets?.main_bank_paise || 0)}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Journal lines table */}
+                <div className="overflow-x-auto pt-2">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-secondary/40 uppercase text-muted-foreground border-b border-border/60">
                       <tr>
                         <th className="py-2.5 px-3">Account Name</th>
-                        <th className="py-2.5 px-3 text-right">Debit (Asset)</th>
-                        <th className="py-2.5 px-3 text-right">Credit (Liab / Equity)</th>
+                        <th className="py-2.5 px-3 text-right">Debit (Assets)</th>
+                        <th className="py-2.5 px-3 text-right">Credit (Capital / Liab)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40 font-mono">
@@ -1101,17 +1409,395 @@ export const AccountsPage: React.FC = () => {
                   </table>
                 </div>
               </div>
-            ) : (
-              <div className="p-6 rounded-xl bg-secondary/20 border border-border/60 text-center space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Opening balances can be entered by the authorized owners to reflect the business starting position (Cash, Bank, Equipment, Loans, and Partner Capital) as of 31 Dec 2025.
-                </p>
-                <p className="text-xs text-amber-400">
-                  Total debited assets must equal total credited liabilities and owner capital.
-                </p>
+            </div>
+          ) : (
+            /* UNPOSTED GUIDED SETUP WIZARD */
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-primary/30 bg-card/60 p-6 glass-panel space-y-6">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-primary/20 text-primary">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    <h3 className="font-bold text-base text-white">Opening Balance & Capital Setup</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Set up your genuine starting financial position before launching live operations. All accounts currently start at Rs. 0.00 until confirmed here.
+                  </p>
+                </div>
+
+                {setupError && (
+                  <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{setupError}</span>
+                  </div>
+                )}
+
+                {/* STEP 1: OPENING DATE */}
+                <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <h4 className="font-bold text-xs uppercase text-primary tracking-wider flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[11px] flex items-center justify-center font-bold">1</span>
+                      Business Opening Date & Reference
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="block text-muted-foreground mb-1">Business Opening Date *</label>
+                      <input
+                        type="date"
+                        value={openingDate}
+                        onChange={(e) => setOpeningDate(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-muted-foreground mb-1">Opening Reference Notes</label>
+                      <input
+                        type="text"
+                        value={setupNotes}
+                        onChange={(e) => setSetupNotes(e.target.value)}
+                        placeholder="e.g. Pool Town opening financial position"
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 2: THREE OWNERS EQUAL CAPITAL */}
+                <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-2">
+                    <h4 className="font-bold text-xs uppercase text-primary tracking-wider flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[11px] flex items-center justify-center font-bold">2</span>
+                      Owner Capital Contributions (Akash, Pasan, Vishwa)
+                    </h4>
+                    <span className="text-[11px] text-muted-foreground">
+                      Total Capital: <strong className="text-white font-mono">{formatLKR(totalOwnerCapitalPaise)}</strong>
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-lg bg-primary/10 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-0.5">
+                      <span className="font-semibold text-white">Equal Capital Shortcut</span>
+                      <p className="text-[11px] text-muted-foreground">
+                        All 3 owners started with identical capital contributions. Enter once to fill for all 3.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        placeholder="Rs. amount per owner"
+                        value={equalCapitalRupees}
+                        onChange={(e) => setEqualCapitalRupees(e.target.value)}
+                        className="w-36 px-2.5 py-1.5 rounded-lg bg-secondary/80 border border-border text-foreground text-xs font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyEqualCapital}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm transition"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Apply to All 3
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Akash */}
+                    <div className="p-4 rounded-xl bg-card/60 border border-border/70 space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-sm">Akash</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">Account 3001</span>
+                      </div>
+                      <div>
+                        <label className="block text-muted-foreground mb-1 text-[11px]">Capital Contribution (Rs.)</label>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={akashCapitalRs}
+                          onChange={(e) => setAkashCapitalRs(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground font-mono font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-muted-foreground mb-1 text-[11px]">Deposited / Received Into</label>
+                        <select
+                          value={akashDest}
+                          onChange={(e) => setAkashDest(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                        >
+                          <option value="1002">Main Bank Account</option>
+                          <option value="1001">Cash in Hand</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Pasan */}
+                    <div className="p-4 rounded-xl bg-card/60 border border-border/70 space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-sm">Pasan</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">Account 3002</span>
+                      </div>
+                      <div>
+                        <label className="block text-muted-foreground mb-1 text-[11px]">Capital Contribution (Rs.)</label>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={pasanCapitalRs}
+                          onChange={(e) => setPasanCapitalRs(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground font-mono font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-muted-foreground mb-1 text-[11px]">Deposited / Received Into</label>
+                        <select
+                          value={pasanDest}
+                          onChange={(e) => setPasanDest(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                        >
+                          <option value="1002">Main Bank Account</option>
+                          <option value="1001">Cash in Hand</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Vishwa */}
+                    <div className="p-4 rounded-xl bg-card/60 border border-border/70 space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-sm">Vishwa</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">Account 3003</span>
+                      </div>
+                      <div>
+                        <label className="block text-muted-foreground mb-1 text-[11px]">Capital Contribution (Rs.)</label>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={vishwaCapitalRs}
+                          onChange={(e) => setVishwaCapitalRs(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground font-mono font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-muted-foreground mb-1 text-[11px]">Deposited / Received Into</label>
+                        <select
+                          value={vishwaDest}
+                          onChange={(e) => setVishwaDest(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                        >
+                          <option value="1001">Cash in Hand</option>
+                          <option value="1002">Main Bank Account</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 3: RELATIVES CONTRIBUTIONS & SAVINGS */}
+                <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-2">
+                    <div>
+                      <h4 className="font-bold text-xs uppercase text-primary tracking-wider flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[11px] flex items-center justify-center font-bold">3</span>
+                        Money Received From Relatives (Opening Day)
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Classified as Family Gift (Equity 3020) or Repayable Loan (Liability 2015). Never counted as operating profit!
+                      </p>
+                    </div>
+                    <div className="text-right text-[11px] text-muted-foreground">
+                      Total Relatives: <strong className="text-white font-mono">{formatLKR(totalRelativesFundingPaise)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {relatives.map((rel) => (
+                      <div key={rel.id} className="p-3.5 rounded-xl bg-card/60 border border-border/70 grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs items-center">
+                        <div className="sm:col-span-3">
+                          <label className="block text-muted-foreground text-[10px] mb-0.5">Relative / Contributor Name *</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Uncle Samantha"
+                            value={rel.name}
+                            onChange={(e) => handleUpdateRelativeRow(rel.id, "name", e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-muted-foreground text-[10px] mb-0.5">Amount (Rs.) *</label>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={rel.amountRs}
+                            onChange={(e) => handleUpdateRelativeRow(rel.id, "amountRs", e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs font-mono font-medium"
+                          />
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label className="block text-muted-foreground text-[10px] mb-0.5">Destination Account</label>
+                          <select
+                            value={rel.destination}
+                            onChange={(e) => handleUpdateRelativeRow(rel.id, "destination", e.target.value)}
+                            className="w-full px-2 py-1.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                          >
+                            <option value="1004">Savings Held as Cash</option>
+                            <option value="1003">Savings Held in Bank</option>
+                            <option value="1001">Cash in Hand</option>
+                            <option value="1002">Main Bank Account</option>
+                          </select>
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label className="block text-muted-foreground text-[10px] mb-0.5">Classification</label>
+                          <select
+                            value={rel.classification}
+                            onChange={(e) => handleUpdateRelativeRow(rel.id, "classification", e.target.value)}
+                            className="w-full px-2 py-1.5 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                          >
+                            <option value="GIFT">Family Gift / Contribution (Equity)</option>
+                            <option value="LOAN">Repayable Loan (Liability)</option>
+                            <option value="PENDING">Pending Confirmation (Liability)</option>
+                          </select>
+                        </div>
+                        <div className="sm:col-span-1 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRelativeRow(rel.id)}
+                            disabled={relatives.length === 1}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 transition"
+                            title="Remove row"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={handleAddRelativeRow}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:bg-secondary/40 text-xs font-medium text-foreground transition"
+                      >
+                        <Plus className="h-3.5 w-3.5 text-primary" />
+                        Add Another Contributor
+                      </button>
+                      <span className="text-[11px] text-muted-foreground">
+                        Savings from Relatives: <strong className="text-purple-300 font-mono">{formatLKR(totalOpeningSavingsCalcPaise)}</strong>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 4: OPTIONAL ASSETS & LIABILITIES */}
+                <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
+                  <h4 className="font-bold text-xs uppercase text-primary tracking-wider flex items-center gap-2 border-b border-border/40 pb-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[11px] flex items-center justify-center font-bold">4</span>
+                    Optional Opening Equipment & Other Liabilities
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <label className="block text-muted-foreground mb-1 text-[11px]">Pool Tables & Equipment (Rs.)</label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={fixedAssetsRs}
+                        onChange={(e) => setFixedAssetsRs(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground text-xs font-mono"
+                      />
+                      <span className="text-[10px] text-muted-foreground mt-0.5 block">Account 1030 (Fixed Assets)</span>
+                    </div>
+                    <div>
+                      <label className="block text-muted-foreground mb-1 text-[11px]">Opening Business Loan (Rs.)</label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={openingLoanRs}
+                        onChange={(e) => setOpeningLoanRs(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground text-xs font-mono"
+                      />
+                      <span className="text-[10px] text-muted-foreground mt-0.5 block">Account 2010 (Commercial Loan)</span>
+                    </div>
+                    <div>
+                      <label className="block text-muted-foreground mb-1 text-[11px]">Lender Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Bank of Ceylon / Commercial Bank"
+                        value={openingLoanLender}
+                        onChange={(e) => setOpeningLoanLender(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-foreground text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 5: DOUBLE-ENTRY BALANCE VERIFICATION */}
+                <div className={`p-5 rounded-xl border space-y-4 ${
+                  isOpeningSetupBalanced
+                    ? "bg-emerald-500/10 border-emerald-500/30"
+                    : totalOpeningDebitsPaise > 0
+                    ? "bg-amber-500/10 border-amber-500/30"
+                    : "bg-secondary/30 border-border/60"
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[11px] flex items-center justify-center font-bold">5</span>
+                        Double-Entry Ledger Balancing Check
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Every rupee of assets (Cash, Bank, Savings, Equipment) must equal total Equity & Liabilities.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isOpeningSetupBalanced ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                          Balanced & Ready to Post
+                        </span>
+                      ) : totalOpeningDebitsPaise > 0 ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
+                          Imbalance: {formatLKR(Math.abs(openingImbalancePaise))}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Awaiting amounts</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-lg bg-card/60 border border-border/60 font-mono text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] font-sans">Total Assets (DR)</span>
+                      <span className="text-white font-bold">{formatLKR(totalOpeningDebitsPaise)}</span>
+                      <span className="block text-[10px] text-muted-foreground font-sans">Cash, Bank, Savings, Assets</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] font-sans">Total Equity & Liab (CR)</span>
+                      <span className="text-white font-bold">{formatLKR(totalOpeningCreditsPaise)}</span>
+                      <span className="block text-[10px] text-muted-foreground font-sans">Capital, Relatives, Loans</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] font-sans">Difference</span>
+                      <span className={openingImbalancePaise === 0 ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                        {formatLKR(openingImbalancePaise)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      disabled={!isOpeningSetupBalanced || postOpeningSetupMutation.isPending}
+                      onClick={() => setIsConfirmSetupModalOpen(true)}
+                      className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition shadow-lg disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Review & Post Opening Balances
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1300,6 +1986,93 @@ export const AccountsPage: React.FC = () => {
                 className="px-5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs transition shadow-sm disabled:opacity-50"
               >
                 {reopenPeriodMutation.isPending ? "Reopening..." : "Authorize & Reopen Period"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Opening Setup Modal */}
+      {isConfirmSetupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Confirm Opening Balances</h3>
+                  <p className="text-xs text-muted-foreground">This action cannot be undone without an explicit reversal.</p>
+                </div>
+              </div>
+              <button onClick={() => setIsConfirmSetupModalOpen(false)} className="text-muted-foreground hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="text-xs text-slate-300 space-y-2">
+              <p>You are about to post the opening financial position for Pool Town. This will create journal entries for:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>Owner capital contributions (Akash, Pasan, Vishwa)</li>
+                <li>Relatives&#39; funding contributions</li>
+                <li>Opening cash, bank, and savings balances</li>
+              </ul>
+              <p className="text-amber-300 font-medium">Verify all amounts are correct before confirming.</p>
+            </div>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
+              <button type="button" onClick={() => setIsConfirmSetupModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-border text-xs font-medium hover:bg-secondary/40 transition">
+                Back to Edit
+              </button>
+              <button type="button" onClick={() => { handlePostOpeningSetup(); }}
+                disabled={postOpeningSetupMutation.isPending}
+                className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md disabled:opacity-50">
+                {postOpeningSetupMutation.isPending ? "Posting..." : "Confirm & Post Opening Balances"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reverse Opening Balances Modal */}
+      {isReverseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400">
+                  <RotateCcw className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Reset Opening Balances</h3>
+                  <p className="text-xs text-muted-foreground">This will reverse all opening journal entries so you can re-enter them.</p>
+                </div>
+              </div>
+              <button onClick={() => setIsReverseModalOpen(false)} className="text-muted-foreground hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-muted-foreground mb-1">Reason for Reset *</label>
+                <textarea rows={3}
+                  placeholder="Explain why the opening balances must be corrected..."
+                  value={reverseReason}
+                  onChange={(e) => setReverseReason(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border text-foreground"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
+              <button type="button" onClick={() => setIsReverseModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-border text-xs font-medium hover:bg-secondary/40 transition">
+                Cancel
+              </button>
+              <button type="button"
+                disabled={reverseReason.trim().length < 5 || reverseOpeningMutation.isPending}
+                onClick={() => reverseOpeningMutation.mutate()}
+                className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition shadow-sm disabled:opacity-50">
+                {reverseOpeningMutation.isPending ? "Reversing..." : "Confirm Reset"}
               </button>
             </div>
           </div>

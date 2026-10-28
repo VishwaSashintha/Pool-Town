@@ -28,8 +28,9 @@ CHART_OF_ACCOUNTS = [
     # Liabilities (2xxx)
     ("2001", "Accounts Payable — Suppliers", AccountType.OTHER, "Unpaid supplier bills for inventory", 10),
     ("2010", "Loan Payable", AccountType.OTHER, "External commercial or private business loans", 11),
-    ("2020", "Customer Advances", AccountType.OTHER, "Customer deposits / prepaid balances", 12),
-    ("2030", "Owner Loans Payable", AccountType.OTHER, "Funds loaned by owners to the business", 13),
+    ("2015", "Family & Outside Loans Payable", AccountType.OTHER, "Repayable loans received from relatives or outside supporters", 12),
+    ("2020", "Customer Advances", AccountType.OTHER, "Customer deposits / prepaid balances", 13),
+    ("2030", "Owner Loans Payable", AccountType.OTHER, "Funds loaned by owners to the business", 14),
 
     # Equity (3xxx)
     ("3001", "Owner Capital — Akash", AccountType.OTHER, "Akash's contributed capital balance", 20),
@@ -40,6 +41,7 @@ CHART_OF_ACCOUNTS = [
     ("3012", "Profit Allocation — Akash", AccountType.OTHER, "20% profit allocated to Akash", 25),
     ("3013", "Profit Allocation — Pasan", AccountType.OTHER, "20% profit allocated to Pasan", 26),
     ("3014", "Profit Allocation — Vishwa", AccountType.OTHER, "20% profit allocated to Vishwa", 27),
+    ("3020", "External & Family Contributions", AccountType.OTHER, "Gifts or equity contributions from relatives or external supporters", 28),
 
     # Revenue (4xxx)
     ("4001", "Pool Table Revenue", AccountType.OTHER, "Table rental income from pool sessions", 30),

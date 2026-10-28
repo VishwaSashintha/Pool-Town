@@ -7,6 +7,8 @@ from sqlalchemy import desc
 from app.database import get_db
 from app.models.accounts import FinancialAccount, AccountTransfer, CashCount, BankReconciliation
 from app.models.journal import AccountingPeriod, JournalEntry, JournalLine, JournalEntryStatus
+from app.models.owners import Owner, OwnerTransaction, OwnerTransactionType
+from app.models.audit import AuditLog
 from app.schemas.accounts import (
     FinancialAccountResponse,
     AccountTransferCreate,
@@ -19,7 +21,15 @@ from app.schemas.accounts import (
     AccountingPeriodResponse,
     PeriodCloseRequest,
     PeriodReopenRequest,
+    OpeningBalanceItem,
     OpeningBalanceCreate,
+    OwnerCapitalContributionInput,
+    RelativeContributionInput,
+    OpeningLiabilityInput,
+    OpeningAssetInput,
+    OpeningBalanceSetupRequest,
+    OpeningBalanceSummaryResponse,
+    OpeningBalanceReverseRequest,
 )
 from app.services.journal import JournalService, JournalLineInput
 
@@ -384,39 +394,298 @@ def reopen_period(year: int, month: int, payload: PeriodReopenRequest, db: Sessi
 # OPENING BALANCES WORKFLOW
 # ==========================================
 
-@router.get("/opening-balances")
+@router.get("/opening-balances", response_model=OpeningBalanceSummaryResponse)
 def get_opening_balances(db: Session = Depends(get_db)):
-    """Check if opening balances have been posted and return the entry."""
-    entry = db.query(JournalEntry).filter(
+    """
+    Returns the current opening balance setup status, line details, and broken down summary.
+    If not yet posted, returns posted=False and zeroed breakdown.
+    """
+    entry = (
+        db.query(JournalEntry)
+        .filter(
+            JournalEntry.source_type == "opening_balance",
+            JournalEntry.status == JournalEntryStatus.POSTED,
+        )
+        .order_by(desc(JournalEntry.id))
+        .first()
+    )
+
+    if not entry:
+        return OpeningBalanceSummaryResponse(
+            posted=False,
+            reference=None,
+            entry_id=None,
+            entry_date=None,
+            description="Opening balances have not been entered yet. Starting figures can be set up before recording daily transactions.",
+            notes=None,
+            total_amount_paise=0,
+            lines=[],
+            breakdown={
+                "owner_capital": {"akash_paise": 0, "pasan_paise": 0, "vishwa_paise": 0, "total_paise": 0},
+                "relatives_contributions": {"gift_equity_paise": 0, "loan_liability_paise": 0, "total_paise": 0},
+                "assets": {
+                    "cash_in_hand_paise": 0,
+                    "main_bank_paise": 0,
+                    "savings_cash_paise": 0,
+                    "savings_bank_paise": 0,
+                    "total_savings_paise": 0,
+                    "fixed_assets_paise": 0,
+                    "other_assets_paise": 0,
+                    "total_assets_paise": 0,
+                },
+                "liabilities": {"loans_payable_paise": 0, "other_liabilities_paise": 0, "total_liabilities_paise": 0},
+            },
+        )
+
+    lines = [
+        {
+            "id": l.id,
+            "account_code": l.account_code,
+            "account_name": l.account_name,
+            "is_debit": l.is_debit,
+            "amount_paise": l.amount_paise,
+            "debit_paise": l.debit_paise,
+            "credit_paise": l.credit_paise,
+            "description": l.description,
+        }
+        for l in entry.lines
+    ]
+    total_debit = sum(l["debit_paise"] for l in lines)
+
+    breakdown = {
+        "owner_capital": {
+            "akash_paise": sum(l["credit_paise"] for l in lines if l["account_code"] == "3001"),
+            "pasan_paise": sum(l["credit_paise"] for l in lines if l["account_code"] == "3002"),
+            "vishwa_paise": sum(l["credit_paise"] for l in lines if l["account_code"] == "3003"),
+            "total_paise": sum(l["credit_paise"] for l in lines if l["account_code"] in ("3001", "3002", "3003")),
+        },
+        "relatives_contributions": {
+            "gift_equity_paise": sum(l["credit_paise"] for l in lines if l["account_code"] == "3020"),
+            "loan_liability_paise": sum(l["credit_paise"] for l in lines if l["account_code"] == "2015"),
+            "total_paise": sum(l["credit_paise"] for l in lines if l["account_code"] in ("3020", "2015")),
+        },
+        "assets": {
+            "cash_in_hand_paise": sum(l["debit_paise"] for l in lines if l["account_code"] == "1001"),
+            "main_bank_paise": sum(l["debit_paise"] for l in lines if l["account_code"] == "1002"),
+            "savings_cash_paise": sum(l["debit_paise"] for l in lines if l["account_code"] == "1004"),
+            "savings_bank_paise": sum(l["debit_paise"] for l in lines if l["account_code"] == "1003"),
+            "total_savings_paise": sum(l["debit_paise"] for l in lines if l["account_code"] in ("1003", "1004")),
+            "fixed_assets_paise": sum(l["debit_paise"] for l in lines if l["account_code"] == "1030"),
+            "other_assets_paise": sum(l["debit_paise"] for l in lines if l["account_code"] not in ("1001", "1002", "1003", "1004", "1030") and l["is_debit"]),
+            "total_assets_paise": total_debit,
+        },
+        "liabilities": {
+            "loans_payable_paise": sum(l["credit_paise"] for l in lines if l["account_code"] in ("2010", "2015", "2030")),
+            "other_liabilities_paise": sum(l["credit_paise"] for l in lines if l["account_code"] not in ("2010", "2015", "2030", "3001", "3002", "3003", "3020", "3010") and not l["is_debit"]),
+            "total_liabilities_paise": sum(l["credit_paise"] for l in lines if l["account_code"].startswith("2")),
+        },
+    }
+
+    return OpeningBalanceSummaryResponse(
+        posted=True,
+        reference=entry.reference,
+        entry_id=entry.id,
+        entry_date=entry.entry_date,
+        description=entry.description,
+        notes=entry.notes,
+        total_amount_paise=total_debit,
+        lines=lines,
+        breakdown=breakdown,
+    )
+
+
+@router.post("/opening-balances/setup", status_code=201)
+def post_opening_balances_setup(payload: OpeningBalanceSetupRequest, db: Session = Depends(get_db)):
+    """
+    Guided opening balance setup endpoint:
+    - Equal or custom owner capital contributions for Akash, Pasan, Vishwa (with destination account)
+    - Relatives' contributions with destination (Cash, Bank, Savings Cash, Savings Bank) and classification (GIFT -> 3020, LOAN -> 2015)
+    - Direct opening assets (1001, 1002, 1003, 1004, 1030, etc.)
+    - Direct opening liabilities (2010, 2015, 2030, etc.)
+    - Requires debits == credits
+    - Prevents duplicate posting
+    """
+    existing = db.query(JournalEntry).filter(
         JournalEntry.source_type == "opening_balance",
         JournalEntry.status == JournalEntryStatus.POSTED,
     ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Opening balances are already posted under reference {existing.reference}. To modify, reverse first.",
+        )
 
-    if not entry:
-        return {"posted": False, "entry": None}
+    debits: dict[str, tuple[str, int, list[str]]] = {}
+    credits: dict[str, tuple[str, int, list[str]]] = {}
 
-    return {
-        "posted": True,
-        "entry_id": entry.id,
-        "reference": entry.reference,
-        "entry_date": entry.entry_date,
-        "description": entry.description,
-        "lines": [
-            {
-                "account_code": l.account_code,
-                "account_name": l.account_name,
-                "is_debit": l.is_debit,
-                "amount_paise": l.amount_paise,
-            }
-            for l in entry.lines
-        ],
-    }
+    def add_debit(code: str, amount: int, desc: str):
+        if amount <= 0:
+            return
+        acct = db.query(FinancialAccount).filter(FinancialAccount.code == code).first()
+        if not acct:
+            raise HTTPException(status_code=404, detail=f"Account code {code} not found")
+        if code not in debits:
+            debits[code] = (acct.name, 0, [])
+        name, curr_amt, descs = debits[code]
+        descs.append(desc)
+        debits[code] = (name, curr_amt + amount, descs)
+
+    def add_credit(code: str, amount: int, desc: str):
+        if amount <= 0:
+            return
+        acct = db.query(FinancialAccount).filter(FinancialAccount.code == code).first()
+        if not acct:
+            raise HTTPException(status_code=404, detail=f"Account code {code} not found")
+        if code not in credits:
+            credits[code] = (acct.name, 0, [])
+        name, curr_amt, descs = credits[code]
+        descs.append(desc)
+        credits[code] = (name, curr_amt + amount, descs)
+
+    # 1. Process Owner Capital Contributions
+    owner_map = {"akash": "3001", "pasan": "3002", "vishwa": "3003"}
+    for oc in payload.owner_contributions:
+        if oc.amount_paise <= 0:
+            continue
+        key = oc.owner_name.strip().lower()
+        cap_code = owner_map.get(key)
+        if not cap_code:
+            owner_obj = db.query(Owner).filter(Owner.name.ilike(f"%{oc.owner_name.strip()}%")).first()
+            if owner_obj:
+                cap_code = f"300{owner_obj.id}"
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown owner '{oc.owner_name}'. Expected Akash, Pasan, or Vishwa.")
+
+        add_credit(cap_code, oc.amount_paise, f"Opening Capital: {oc.owner_name}")
+        dest = oc.destination_code if oc.destination_code in ("1001", "1002") else "1001"
+        dest_name = "Cash in Hand" if dest == "1001" else "Main Bank Account"
+        add_debit(dest, oc.amount_paise, f"Capital received from {oc.owner_name} into {dest_name}")
+
+    # 2. Process Relatives' Contributions
+    for rc in payload.relative_contributions:
+        if rc.amount_paise <= 0:
+            continue
+        dest = rc.destination_code if rc.destination_code in ("1001", "1002", "1003", "1004") else "1004"
+        dest_name = {
+            "1001": "Business Cash",
+            "1002": "Main Bank Account",
+            "1003": "Savings Held in Bank",
+            "1004": "Savings Held as Cash",
+        }.get(dest, "Business Cash")
+
+        is_loan = rc.classification.upper() in ("LOAN", "LIABILITY")
+        credit_code = "2015" if is_loan else "3020"
+        fund_type = "Loan" if is_loan else "Family Gift/Contribution"
+        add_credit(credit_code, rc.amount_paise, f"Opening funding from {rc.contributor_name} ({fund_type})")
+        add_debit(dest, rc.amount_paise, f"Family funding from {rc.contributor_name} deposited into {dest_name}")
+
+    # 3. Direct Assets
+    for da in payload.direct_assets:
+        if da.amount_paise <= 0:
+            continue
+        add_debit(da.account_code, da.amount_paise, da.notes or f"Opening balance: {da.name}")
+
+    # 4. Opening Liabilities
+    for ol in payload.opening_liabilities:
+        if ol.amount_paise <= 0:
+            continue
+        add_credit(ol.account_code, ol.amount_paise, ol.notes or f"Opening liability: {ol.lender_or_creditor}")
+
+    total_debits = sum(amt for _, amt, _ in debits.values())
+    total_credits = sum(amt for _, amt, _ in credits.values())
+
+    if total_debits == 0 and total_credits == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No balances entered. Please enter at least owner capital or opening funds to post opening balances.",
+        )
+
+    if total_debits != total_credits:
+        diff_paise = abs(total_debits - total_credits)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Opening balance is unbalanced! "
+                f"Total Assets (Debit): Rs. {total_debits / 100:,.2f} != "
+                f"Total Capital & Funding (Credit): Rs. {total_credits / 100:,.2f}. "
+                f"Imbalance: Rs. {diff_paise / 100:,.2f}. "
+                f"Please ensure every rupee allocated to an asset is matched with an owner capital or funding source."
+            ),
+        )
+
+    lines: list[JournalLineInput] = []
+    for code, (name, amt, descs) in debits.items():
+        desc = "; ".join(descs) if descs else f"Opening balance: {name}"
+        lines.append(JournalLineInput(account_code=code, account_name=name, is_debit=True, amount_paise=amt, description=desc))
+
+    for code, (name, amt, descs) in credits.items():
+        desc = "; ".join(descs) if descs else f"Opening balance: {name}"
+        lines.append(JournalLineInput(account_code=code, account_name=name, is_debit=False, amount_paise=amt, description=desc))
+
+    ref = f"JE-OPENING-{payload.opening_date.strftime('%Y%m%d')}"
+    counter = 1
+    orig_ref = ref
+    while db.query(JournalEntry).filter(JournalEntry.reference == ref).first():
+        ref = f"{orig_ref}-{counter:02d}"
+        counter += 1
+
+    try:
+        entry = JournalService.post_entry(
+            db,
+            entry_date=payload.opening_date,
+            description=f"Opening Balances as of {payload.opening_date}: {payload.notes or 'Initial Capital, Savings & Starting Position'}".strip(),
+            lines=lines,
+            source_type="opening_balance",
+            source_id=0,
+            created_by="Admin",
+            reference=ref,
+            notes=payload.notes,
+        )
+
+        for oc in payload.owner_contributions:
+            if oc.amount_paise <= 0:
+                continue
+            key = oc.owner_name.strip().lower()
+            owner_obj = db.query(Owner).filter(Owner.name.ilike(f"%{key}%")).first()
+            if owner_obj:
+                dest_code = oc.destination_code if oc.destination_code in ("1001", "1002") else "1001"
+                dest_acct = db.query(FinancialAccount).filter(FinancialAccount.code == dest_code).first()
+                tx_ref = f"CAP-OPENING-{owner_obj.name.upper()[:3]}-{payload.opening_date.strftime('%Y%m%d')}"
+                c_idx = 1
+                base_tx_ref = tx_ref
+                while db.query(OwnerTransaction).filter(OwnerTransaction.reference == tx_ref).first():
+                    tx_ref = f"{base_tx_ref}-{c_idx}"
+                    c_idx += 1
+
+                otx = OwnerTransaction(
+                    reference=tx_ref,
+                    owner_id=owner_obj.id,
+                    transaction_date=payload.opening_date,
+                    transaction_type=OwnerTransactionType.INITIAL_CAPITAL,
+                    amount_paise=oc.amount_paise,
+                    description=f"Initial Opening Capital Contribution ({dest_acct.name if dest_acct else 'Cash'})",
+                    account_id=dest_acct.id if dest_acct else None,
+                    notes=oc.notes or "Initial capital from opening balance setup",
+                    created_by="Admin",
+                    journal_entry_id=entry.id,
+                )
+                db.add(otx)
+
+        db.commit()
+        return {
+            "message": "Opening balances posted successfully",
+            "reference": entry.reference,
+            "entry_id": entry.id,
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/opening-balances", status_code=201)
 def post_opening_balances(payload: OpeningBalanceCreate, db: Session = Depends(get_db)):
     """
-    Post opening balances journal entry as of 31 Dec 2025.
+    Post opening balances journal entry from raw account items.
     Must balance: Sum(Debit Assets) == Sum(Credit Liabilities + Equity).
     """
     existing = db.query(JournalEntry).filter(
@@ -444,7 +713,13 @@ def post_opening_balances(payload: OpeningBalanceCreate, db: Session = Depends(g
             )
         )
 
-    # Post using JournalService with source_type="opening_balance"
+    ref = f"JE-OPENING-{payload.effective_date.strftime('%Y%m%d')}"
+    counter = 1
+    orig_ref = ref
+    while db.query(JournalEntry).filter(JournalEntry.reference == ref).first():
+        ref = f"{orig_ref}-{counter:02d}"
+        counter += 1
+
     try:
         entry = JournalService.post_entry(
             db,
@@ -454,7 +729,7 @@ def post_opening_balances(payload: OpeningBalanceCreate, db: Session = Depends(g
             source_type="opening_balance",
             source_id=0,
             created_by="Admin",
-            reference="JE-OPENING-20251231",
+            reference=ref,
             notes=payload.notes,
         )
         db.commit()
@@ -466,6 +741,64 @@ def post_opening_balances(payload: OpeningBalanceCreate, db: Session = Depends(g
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/opening-balances/reverse")
+def reverse_opening_balances(payload: OpeningBalanceReverseRequest, db: Session = Depends(get_db)):
+    """
+    Safely reverse the posted opening balance journal entry to allow fresh setup.
+    """
+    entry = (
+        db.query(JournalEntry)
+        .filter(
+            JournalEntry.source_type == "opening_balance",
+            JournalEntry.status == JournalEntryStatus.POSTED,
+        )
+        .order_by(desc(JournalEntry.id))
+        .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="No active posted opening balance entry found to reverse.")
+
+    try:
+        rev_entry = JournalService.reverse_entry(
+            db,
+            entry_id=entry.id,
+            reversal_date=entry.entry_date,
+            reason=payload.reason,
+            created_by=payload.reversed_by or "Admin",
+        )
+
+        # Remove linked initial capital OwnerTransactions
+        linked_txs = (
+            db.query(OwnerTransaction)
+            .filter(
+                OwnerTransaction.journal_entry_id == entry.id,
+                OwnerTransaction.transaction_type == OwnerTransactionType.INITIAL_CAPITAL,
+            )
+            .all()
+        )
+        for tx in linked_txs:
+            db.delete(tx)
+
+        audit = AuditLog(
+            user=payload.reversed_by or "Admin",
+            action="reverse_opening_balance",
+            entity_type="opening_balance",
+            entity_id=entry.id,
+            description=f"Reversed opening balance entry {entry.reference}: {payload.reason}",
+        )
+        db.add(audit)
+        db.commit()
+
+        return {
+            "message": f"Opening balance entry {entry.reference} reversed successfully.",
+            "reversal_reference": rev_entry.reference,
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 
 # ==========================================

@@ -7,25 +7,21 @@ import io
 import openpyxl
 import pytest
 from datetime import date
-from fastapi.testclient import TestClient
-
-from app.main import app
-from app.database import SessionLocal
+from app.services.seed import seed_master_data
 from app.models.owners import Owner, OwnerCollection, OwnerCollectionStatus
 from app.models.accounts import FinancialAccount
 from app.services.journal import JournalService
 
 
-@pytest.fixture
-def client():
-    return TestClient(app)
+@pytest.fixture(autouse=True)
+def seed_data(db):
+    seed_master_data(db)
 
 
-def test_record_confirmed_owner_collection(client):
+def test_record_confirmed_owner_collection(client, db):
     """Recording a confirmed collection with known amount updates correctly."""
-    with SessionLocal() as db:
-        cash_acct = db.query(FinancialAccount).filter(FinancialAccount.code == "1001").first()
-        assert cash_acct is not None
+    cash_acct = db.query(FinancialAccount).filter(FinancialAccount.code == "1001").first()
+    assert cash_acct is not None
 
     payload = {
         "collector_name": "Akash",
@@ -48,11 +44,10 @@ def test_record_confirmed_owner_collection(client):
     assert data["journal_entry_id"] is None
 
 
-def test_record_pending_owner_collection_and_confirm(client):
+def test_record_pending_owner_collection_and_confirm(client, db):
     """Recording an unknown amount leaves balances unchanged until confirmed."""
-    with SessionLocal() as db:
-        bank_acct = db.query(FinancialAccount).filter(FinancialAccount.code == "1002").first()
-        initial_bank_bal = JournalService.get_account_balance(db, "1002")
+    bank_acct = db.query(FinancialAccount).filter(FinancialAccount.code == "1002").first()
+    initial_bank_bal = JournalService.get_account_balance(db, "1002")
 
     payload = {
         "collector_name": "Vishwa",
@@ -73,8 +68,8 @@ def test_record_pending_owner_collection_and_confirm(client):
     assert data["journal_entry_id"] is None
 
     # Balance must remain completely unchanged!
-    with SessionLocal() as db:
-        assert JournalService.get_account_balance(db, "1002") == initial_bank_bal
+    db.expire_all()
+    assert JournalService.get_account_balance(db, "1002") == initial_bank_bal
 
     # Now confirm the collection
     confirm_payload = {
@@ -90,9 +85,9 @@ def test_record_pending_owner_collection_and_confirm(client):
     assert c_data["journal_entry_id"] is not None
 
     # Balance should now reflect the confirmed income
-    with SessionLocal() as db:
-        new_bank_bal = JournalService.get_account_balance(db, "1002")
-        assert new_bank_bal == initial_bank_bal + 1500000
+    db.expire_all()
+    new_bank_bal = JournalService.get_account_balance(db, "1002")
+    assert new_bank_bal == initial_bank_bal + 1500000
 
 
 def test_list_collections_with_filters(client):

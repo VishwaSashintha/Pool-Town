@@ -399,9 +399,43 @@ export const api = {
 
     // Opening Balances
     getOpeningBalances: () =>
-      request<{ posted: boolean; reference?: string; entry_date?: string; description?: string; lines?: any[] }>("/accounts/opening-balances"),
+      request<{
+        posted: boolean;
+        reference?: string;
+        entry_id?: number;
+        entry_date?: string;
+        description?: string;
+        notes?: string;
+        total_amount_paise?: number;
+        lines?: any[];
+        breakdown?: {
+          owner_capital?: { akash_paise: number; pasan_paise: number; vishwa_paise: number; total_paise: number };
+          relatives_contributions?: { gift_equity_paise: number; loan_liability_paise: number; total_paise: number };
+          assets?: {
+            cash_in_hand_paise: number;
+            main_bank_paise: number;
+            savings_cash_paise: number;
+            savings_bank_paise: number;
+            total_savings_paise: number;
+            fixed_assets_paise: number;
+            other_assets_paise: number;
+            total_assets_paise: number;
+          };
+          liabilities?: { loans_payable_paise: number; other_liabilities_paise: number; total_liabilities_paise: number };
+        };
+      }>("/accounts/opening-balances"),
+    postOpeningBalancesSetup: (data: any) =>
+      request<{ message: string; reference: string; entry_id: number }>("/accounts/opening-balances/setup", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     postOpeningBalances: (data: any) =>
       request<{ message: string; reference: string; entry_id: number }>("/accounts/opening-balances", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    reverseOpeningBalances: (data: { reason: string; reversed_by?: string }) =>
+      request<{ message: string; reversal_reference: string }>("/accounts/opening-balances/reverse", {
         method: "POST",
         body: JSON.stringify(data),
       }),

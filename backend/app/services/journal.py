@@ -231,7 +231,7 @@ class JournalService:
             func.coalesce(func.sum(JournalLine.amount_paise), 0)
         ).join(JournalEntry).filter(
             JournalLine.account_code == account_code,
-            JournalEntry.status == JournalEntryStatus.POSTED,
+            JournalEntry.status.in_([JournalEntryStatus.POSTED, JournalEntryStatus.REVERSED]),
         )
 
         if as_of_date:
@@ -268,7 +268,7 @@ class JournalService:
                 case((JournalLine.is_debit == False, JournalLine.amount_paise), else_=0)
             ).label("total_credits"),
         ).join(JournalEntry).filter(
-            JournalEntry.status == JournalEntryStatus.POSTED,
+            JournalEntry.status.in_([JournalEntryStatus.POSTED, JournalEntryStatus.REVERSED]),
         )
 
         if as_of_date:
