@@ -11,7 +11,7 @@ from app.config import settings
 class BackupService:
     @staticmethod
     def get_backup_dir() -> str:
-        backup_dir = "./backups"
+        backup_dir = settings.resolved_backup_dir
         os.makedirs(backup_dir, exist_ok=True)
         return backup_dir
 

@@ -26,7 +26,7 @@ def create_db_engine(database_url: str):
     return engine
 
 
-engine = create_db_engine(settings.database_url)
+engine = create_db_engine(settings.resolved_database_url)
 
 SessionLocal = sessionmaker(
     autocommit=False,

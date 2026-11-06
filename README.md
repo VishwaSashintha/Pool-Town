@@ -4,6 +4,30 @@ Pool Town ERP is a billiard hall management and accounting system built for Pool
 
 ---
 
+## Windows Desktop Application (For Accountants & End Users)
+
+For daily business use by accountants and hall managers, Pool Town ERP is distributed as a standalone Windows desktop application:
+
+- **No Developer Tools Required**: Accountants do not need to install Python, Node.js, npm, Git, or run command-line scripts.
+- **Single-File Setup**: Run `PoolTownERP-Setup.exe` to install the software in seconds.
+- **Desktop & Start Menu Shortcuts**: Double-click the Pool Town ERP shortcut to launch the app in its own window.
+- **Safe Data Storage**: Business databases are stored in `%LOCALAPPDATA%\PoolTownERP\data\billiard.db`. Reinstalling or updating the application will never overwrite or erase your company records.
+- **Backups**: Backups are saved in `%LOCALAPPDATA%\PoolTownERP\backups\` and can be created or restored directly from the application interface.
+- **Quick Guide**: Refer to [`INSTALLATION_GUIDE.txt`](INSTALLATION_GUIDE.txt) for detailed, plain-English instructions.
+
+### Building the Desktop Installer (Developers)
+
+To compile the standalone Windows installer from source:
+
+```bat
+cd installer
+build.bat
+```
+
+This builds the production React frontend, bundles the FastAPI backend using PyInstaller, compiles the native Windows launcher, and produces `installer\output\PoolTownERP-Setup.exe` via Inno Setup.
+
+---
+
 ## Main Features
 
 - **Pool Table Sessions**: Start and stop session timers, calculate table charges automatically using fixed rate tiers, and collect payments in cash or bank transfer.

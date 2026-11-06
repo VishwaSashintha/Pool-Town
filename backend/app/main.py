@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from fastapi import FastAPI, Depends
@@ -17,9 +18,10 @@ from app.services.seed import seed_master_data
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-
-    os.makedirs("./data", exist_ok=True)
-    os.makedirs("./backups", exist_ok=True)
+    data_dir = settings.resolved_data_dir
+    backup_dir = settings.resolved_backup_dir
+    os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(backup_dir, exist_ok=True)
 
 
     Base.metadata.create_all(bind=engine)
@@ -125,3 +127,29 @@ app.include_router(reports.router)
 app.include_router(equipment.router)
 app.include_router(admin.router)
 app.include_router(settings_router.router)
+
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+_frontend_dir = os.environ.get("POOL_TOWN_FRONTEND_DIR")
+if not _frontend_dir and getattr(sys, "frozen", False):
+    _base_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    _c1 = os.path.join(_base_dir, "frontend_dist")
+    _c2 = os.path.join(os.path.dirname(sys.executable), "frontend_dist")
+    _frontend_dir = _c1 if os.path.isdir(_c1) else (_c2 if os.path.isdir(_c2) else None)
+if not _frontend_dir:
+    _dev_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
+    if os.path.isdir(_dev_path):
+        _frontend_dir = _dev_path
+
+if _frontend_dir and os.path.isdir(_frontend_dir):
+    _assets_dir = os.path.join(_frontend_dir, "assets")
+    if os.path.isdir(_assets_dir):
+        app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
+
+    @app.get("/{full_path:path}", tags=["Frontend"])
+    def serve_spa(full_path: str):
+        target = os.path.join(_frontend_dir, full_path)
+        if full_path and os.path.isfile(target):
+            return FileResponse(target)
+        return FileResponse(os.path.join(_frontend_dir, "index.html"))

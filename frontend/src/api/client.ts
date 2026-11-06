@@ -95,7 +95,7 @@ export interface AdminResetResponse {
   cleared_at: string;
 }
 
-const API_BASE = "/api";
+const API_BASE = (import.meta.env.VITE_API_BASE as string) || "/api";
 const TOKEN_STORAGE_KEY = "bh_session_token";
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

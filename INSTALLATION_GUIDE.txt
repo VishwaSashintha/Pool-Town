@@ -1,0 +1,135 @@
+================================================================================
+                           POOL TOWN ERP
+               Windows Desktop Application Installation Guide
+================================================================================
+
+Welcome to Pool Town ERP! This guide helps you install and start using the
+application on your Windows computer in just a few minutes.
+
+You do NOT need to install Python, Node.js, Git, or any technical tools.
+Everything needed is bundled inside the installer.
+
+--------------------------------------------------------------------------------
+1. SYSTEM REQUIREMENTS
+--------------------------------------------------------------------------------
+* Windows 10 or Windows 11 (64-bit)
+* 4 GB RAM or more
+* 200 MB free disk space
+* Microsoft Edge (installed by default on Windows 10 and 11)
+
+--------------------------------------------------------------------------------
+2. HOW TO INSTALL
+--------------------------------------------------------------------------------
+Step 1: Download the installer file:
+        PoolTownERP-Setup.exe
+
+Step 2: Double-click "PoolTownERP-Setup.exe" to begin installation.
+
+Step 3: If Windows displays a "Windows protected your PC" (SmartScreen) prompt:
+        - Click "More info"
+        - Click "Run anyway"
+
+Step 4: The Pool Town ERP Setup wizard will open:
+        - Click "Next"
+        - Choose your installation location (the default is recommended)
+        - Ensure "Create a desktop shortcut" is checked
+        - Click "Install"
+
+Step 5: When the installation completes, click "Finish".
+        Pool Town ERP will launch automatically!
+
+--------------------------------------------------------------------------------
+3. OPENING THE APPLICATION
+--------------------------------------------------------------------------------
+After installation, you can open Pool Town ERP anytime using either:
+
+1. Desktop Shortcut:
+   Double-click the "Pool Town ERP" icon on your Windows desktop.
+
+2. Start Menu:
+   Click Start, type "Pool Town ERP", and press Enter.
+
+The application opens in its own clean window. No terminal or command prompt
+windows will appear.
+
+--------------------------------------------------------------------------------
+4. SIGNING IN
+--------------------------------------------------------------------------------
+When the application opens, you will see the login screen:
+
+* Enter your Username and Password
+* Default administrator credentials (for first-time setup):
+    Username: admin
+    Password: (contact the system administrator)
+* After logging in, you can change your password anytime under Settings.
+
+--------------------------------------------------------------------------------
+5. WHERE YOUR DATA IS STORED (SAFE & SECURE)
+--------------------------------------------------------------------------------
+Your company database and financial records are stored securely in your Windows
+user profile at:
+    C:\Users\<YourUsername>\AppData\Local\PoolTownERP\data\billiard.db
+
+IMPORTANT:
+* Your database is completely independent of the installation folder.
+* Updating the application or reinstalling it will NEVER delete or overwrite
+  your database or transaction history.
+* Your financial records remain completely safe.
+
+--------------------------------------------------------------------------------
+6. HOW TO CREATE AND RESTORE BACKUPS
+--------------------------------------------------------------------------------
+We recommend creating backups regularly (for example, weekly or monthly):
+
+To create a backup:
+1. In the app sidebar, click "Backup & Restore" (under Settings or Admin).
+2. Click "Create Backup".
+3. A timestamped backup snapshot is created instantly.
+4. Backups are saved in:
+   C:\Users\<YourUsername>\AppData\Local\PoolTownERP\backups\
+5. You can also copy these backup files (.db) to a USB flash drive or cloud
+   storage for safekeeping.
+
+To restore a backup:
+1. In "Backup & Restore", choose a previously saved backup file.
+2. Click "Restore".
+3. The system creates a safeguard backup of your current database first,
+   then restores the selected snapshot safely.
+
+--------------------------------------------------------------------------------
+7. EXCEL EXPORTS
+--------------------------------------------------------------------------------
+You can export reports and transaction tables directly to Microsoft Excel:
+* Daily, Weekly, and Monthly Revenue Reports
+* Transactions & Journal History
+* Partner Profit Allocations & Distributions
+* Inventory and Drink Sales
+
+Simply click the "Export to Excel" (.xlsx) button on any report page.
+
+--------------------------------------------------------------------------------
+8. TROUBLESHOOTING & FAQ
+--------------------------------------------------------------------------------
+Q: Windows SmartScreen shows "Windows protected your PC"?
+A: Because this is an in-house business application without an expensive
+   commercial signing certificate, Windows may ask for confirmation.
+   Simply click "More info" and then click "Run anyway".
+
+Q: The window does not open or shows a connection error?
+A: 1. Check if another instance of Pool Town ERP is already open in the taskbar.
+   2. Restart your computer and double-click the desktop shortcut again.
+   3. Check the server log file at:
+      C:\Users\<YourUsername>\AppData\Local\PoolTownERP\data\server.log
+
+Q: How do I uninstall Pool Town ERP?
+A: Go to Windows Settings > Apps > Installed Apps (or Control Panel > Programs).
+   Find "Pool Town ERP" and click "Uninstall".
+   Your database and backups will NOT be deleted, protecting your data.
+
+--------------------------------------------------------------------------------
+9. NEED HELP?
+--------------------------------------------------------------------------------
+If you experience any issues or have questions, contact the system administrator
+or technical lead:
+* Vishwa Sashintha: https://github.com/VishwaSashintha/Pool-Town
+================================================================================

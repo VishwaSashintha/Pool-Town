@@ -18,6 +18,13 @@ ENV/
 # Backend specific
 backend/.env
 backend/alembic.ini.bak
+backend/dist/
+backend/build/
+
+# Installer
+installer/output/
+installer/launcher/*.exe
+*.whl
 
 # SQLite databases (live DB — never commit)
 *.db
