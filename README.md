@@ -6,14 +6,15 @@ Pool Town ERP is a billiard hall management and accounting system built for Pool
 
 ## Windows Desktop Application (For Accountants & End Users)
 
-For daily business use by accountants and hall managers, Pool Town ERP is distributed as a standalone Windows desktop application:
+For daily business use by accountants and hall managers, Pool Town ERP is distributed as a standalone Windows desktop application located in the `Pool Town ERP Setup` folder:
 
+- **Ready-to-Use Package**: The `Pool Town ERP Setup` folder contains the installer `PoolTownERP-Setup.exe`, `INSTALLATION_GUIDE.txt`, and `VERSION.txt`.
 - **No Developer Tools Required**: Accountants do not need to install Python, Node.js, npm, Git, or run command-line scripts.
-- **Single-File Setup**: Run `PoolTownERP-Setup.exe` to install the software in seconds.
-- **Desktop & Start Menu Shortcuts**: Double-click the Pool Town ERP shortcut to launch the app in its own window.
+- **Single-File Setup**: Double-click `PoolTownERP-Setup.exe` to install the complete application in seconds.
+- **Desktop & Start Menu Shortcuts**: Double-click the Pool Town ERP shortcut to launch the app in its own dedicated window.
 - **Safe Data Storage**: Business databases are stored in `%LOCALAPPDATA%\PoolTownERP\data\billiard.db`. Reinstalling or updating the application will never overwrite or erase your company records.
 - **Backups**: Backups are saved in `%LOCALAPPDATA%\PoolTownERP\backups\` and can be created or restored directly from the application interface.
-- **Quick Guide**: Refer to [`INSTALLATION_GUIDE.txt`](INSTALLATION_GUIDE.txt) for detailed, plain-English instructions.
+- **Accountant Guide**: Refer to [`INSTALLATION_GUIDE.txt`](INSTALLATION_GUIDE.txt) or `Pool Town ERP Setup/INSTALLATION_GUIDE.txt` for simple, step-by-step instructions.
 
 ### Building the Desktop Installer (Developers)
 
@@ -24,7 +25,7 @@ cd installer
 build.bat
 ```
 
-This builds the production React frontend, bundles the FastAPI backend using PyInstaller, compiles the native Windows launcher, and produces `installer\output\PoolTownERP-Setup.exe` via Inno Setup.
+This builds the production React frontend, bundles the FastAPI backend using PyInstaller, compiles the native Windows launcher, and produces `PoolTownERP-Setup.exe` via Inno Setup.
 
 ---
 
@@ -92,6 +93,16 @@ Pool-Town/
 │   ├── package.json         # Frontend dependencies and scripts
 │   ├── tailwind.config.js   # Tailwind CSS configuration
 │   └── vite.config.ts       # Vite build configuration
+├── installer/
+│   ├── launcher/            # C# Windows GUI launcher source (Program.cs)
+│   ├── PoolTownERP.iss      # Inno Setup 6 installer compilation script
+│   ├── build.bat            # One-click Windows installer build script
+│   ├── icon.ico             # Application icon (multi-resolution .ico)
+│   └── icon.png             # Application logo image
+├── Pool Town ERP Setup/     # Ready-to-distribute package for accountant
+│   ├── PoolTownERP-Setup.exe # Standalone Windows desktop installer
+│   ├── INSTALLATION_GUIDE.txt # Plain-English accountant installation guide
+│   └── VERSION.txt          # Release version and compatibility details
 ├── data/                    # Root database storage folder (gitignored)
 ├── backups/                 # Root database backup folder (gitignored)
 ├── start.bat                # Windows one-click launcher (backend + frontend)
@@ -239,7 +250,7 @@ Settings are managed in `backend/app/config.py` and can be overridden using envi
   cd backend
   alembic upgrade head
   ```
-- **Initial Administrator Setup**: On first launch, the backend seeds an initial administrative account so you can log in and begin setup. Immediately after logging in for the first time, navigate to **Settings → Security** to change your administrative username, password, and transaction authorization PIN.
+- **Initial Administrator Setup**: On first launch, the backend seeds an initial administrative account so you can log in and begin setup. Immediately after logging in for the first time, navigate to **Settings -> Security** to change your administrative username, password, and transaction authorization PIN.
 - **Protecting Private Data**: Live database files (`*.db`), write-ahead log files (`*.db-wal`, `*.db-shm`), and backup snapshots (`backups/*.db`) contain business records and financial data. These files are excluded by `.gitignore` and must never be committed to Git.
 
 ---
