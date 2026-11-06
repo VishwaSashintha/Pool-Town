@@ -24,6 +24,7 @@ backend/build/
 # Installer
 installer/output/
 installer/launcher/*.exe
+Pool Town ERP Setup/
 PoolTownERP-Setup.exe
 *.exe
 *.whl

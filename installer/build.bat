@@ -26,7 +26,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [4/5] Copying frontend assets into backend distribution...
-xcopy /s /e /y /i "%~dp0..\frontend\dist" "%~dp0..\backend\dist\PoolTownBackend\frontend_dist"
+xcopy /s /e /y /i "%~dp0..\frontend\dist\*" "%~dp0..\backend\dist\PoolTownBackend\frontend_dist\"
 
 echo [5/5] Compiling Inno Setup installer...
 cd /d "%~dp0"
@@ -44,3 +44,4 @@ if %errorlevel% equ 0 (
     echo BUILD SUCCESSFUL!
     echo Installer created at: installer\output\PoolTownERP-Setup.exe
 )
+
