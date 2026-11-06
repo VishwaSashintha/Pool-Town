@@ -1,0 +1,18 @@
+Pool Town ERP - Billiard Hall Management & Accounting System
+================================================================================
+Application:        Pool Town ERP
+Version:            1.0.0
+Release Type:       Official Standalone Windows Desktop Release
+Release Date:       2026-11-06
+Platform:           Windows 10 / Windows 11 (64-bit)
+Installer File:     PoolTownERP-Setup.exe
+Setup Technology:   Inno Setup 6 (LZMA2 Ultra Compression)
+Backend Runtime:    Self-contained Python 3.11 + FastAPI + SQLite (Bundled)
+Frontend:           React 18 + Vite (Production Build, Embedded)
+Data Storage:       %LOCALAPPDATA%\PoolTownERP\data\billiard.db (Safe from updates)
+Backups Location:   %LOCALAPPDATA%\PoolTownERP\backups\
+Publisher:          Pool Town (Akash, Pasan, Vishwa)
+Repository:         https://github.com/VishwaSashintha/Pool-Town
+License:            Private In-House Commercial ERP
+================================================================================
+

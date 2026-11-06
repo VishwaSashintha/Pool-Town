@@ -15,18 +15,13 @@ venv/
 ENV/
 *.pyc
 
-# Backend specific
-backend/.env
-backend/alembic.ini.bak
-backend/dist/
-backend/build/
-
 # Installer
 installer/output/
 installer/launcher/*.exe
-Pool Town ERP Setup/
+backend/dist/
+backend/build/
 PoolTownERP-Setup.exe
-*.exe
+!Pool Town ERP Setup/PoolTownERP-Setup.exe
 *.whl
 
 # SQLite databases (live DB — never commit)

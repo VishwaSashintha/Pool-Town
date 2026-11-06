@@ -1,0 +1,67 @@
+================================================================================
+                           POOL TOWN ERP
+               Windows Desktop Application Installation Guide
+================================================================================
+
+Welcome to Pool Town ERP! This short guide will help you install and open the
+application on your Windows computer.
+
+You do NOT need to install Python, Node.js, Git, or run any technical commands.
+Everything is already included inside this installer.
+
+--------------------------------------------------------------------------------
+HOW TO INSTALL AND OPEN THE APPLICATION
+--------------------------------------------------------------------------------
+
+Step 1: Double-click the installer file:
+        PoolTownERP-Setup.exe
+
+Step 2: If a blue "Windows protected your PC" (SmartScreen) screen appears:
+        - Click "More info"
+        - Click "Run anyway"
+
+Step 3: Follow the on-screen installation instructions:
+        - Click "Next"
+        - Keep the default installation folder and click "Next"
+        - Make sure "Create a desktop shortcut" is checked
+        - Click "Install"
+
+Step 4: Finish the installation:
+        - When the setup finishes, click "Finish".
+        - Pool Town ERP will launch automatically!
+
+Step 5: Open the application anytime:
+        - Double-click the "Pool Town ERP" shortcut icon on your Windows desktop.
+        - Or click Start and type "Pool Town ERP".
+
+Step 6: Log in:
+        - Enter your Username and Password on the login screen.
+        - Default administrator credentials:
+            Username: admin
+            Password: (contact your manager or system administrator)
+
+--------------------------------------------------------------------------------
+YOUR DATA IS ALWAYS SAFE
+--------------------------------------------------------------------------------
+Your company database and financial transactions are stored safely in:
+    C:\Users\<YourUsername>\AppData\Local\PoolTownERP\data\
+
+* Reinstalling or updating Pool Town ERP will NEVER delete or overwrite your data.
+* You can create automated backups anytime from the "Backup & Restore" menu.
+
+--------------------------------------------------------------------------------
+NEED HELP IF THE APPLICATION DOES NOT OPEN?
+--------------------------------------------------------------------------------
+If Pool Town ERP does not open when you double-click the shortcut:
+
+1. Look at your Windows taskbar to see if Pool Town ERP is already open.
+2. If another copy is running, close it or restart your computer.
+3. Check that Microsoft Edge is available on your computer (installed by default
+   on Windows 10 and Windows 11).
+4. If an error message appears, check the log file located at:
+   C:\Users\<YourUsername>\AppData\Local\PoolTownERP\data\server.log
+5. Contact the system administrator or support team:
+   - Vishwa Sashintha
+   - GitHub Repository: https://github.com/VishwaSashintha/Pool-Town
+================================================================================
+
