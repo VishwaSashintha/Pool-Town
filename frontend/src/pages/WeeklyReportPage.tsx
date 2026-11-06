@@ -1,6 +1,3 @@
-/**
- * WeeklyReportPage — Weekly operational performance, revenue trends, and comparative metrics.
- */
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -85,7 +82,7 @@ export const WeeklyReportPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -150,7 +147,7 @@ export const WeeklyReportPage: React.FC = () => {
         <div className="py-20 text-center text-slate-500">No report data found for this week.</div>
       ) : (
         <>
-          {/* Top Metric Cards */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -191,14 +188,13 @@ export const WeeklyReportPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Department Breakdown */}
           <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">
               Revenue Stream Share ({report.week_start} to {report.week_end})
             </h2>
 
             <div className="space-y-4">
-              {/* Pool */}
+
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-slate-300 font-medium flex items-center gap-2">
@@ -216,7 +212,6 @@ export const WeeklyReportPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* PS4 */}
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-slate-300 font-medium flex items-center gap-2">
@@ -234,7 +229,6 @@ export const WeeklyReportPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Drinks */}
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-slate-300 font-medium flex items-center gap-2">

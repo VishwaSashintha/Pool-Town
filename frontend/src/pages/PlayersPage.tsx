@@ -17,13 +17,11 @@ export const PlayersPage: React.FC = () => {
   const [mergeError, setMergeError] = useState("");
   const [mergeSuccess, setMergeSuccess] = useState("");
 
-  // Add player form
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
-  // Edit player form
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editNotes, setEditNotes] = useState("");
@@ -147,7 +145,6 @@ export const PlayersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Input */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
         <input
@@ -159,7 +156,6 @@ export const PlayersPage: React.FC = () => {
         />
       </div>
 
-      {/* Players List Table */}
       <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden glass-panel">
         {isLoading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">Loading players...</div>
@@ -254,7 +250,6 @@ export const PlayersPage: React.FC = () => {
         )}
       </div>
 
-      {/* Add Player Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -345,7 +340,6 @@ export const PlayersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Player Modal */}
       {editPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-blue-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -460,7 +454,6 @@ export const PlayersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Player Confirmation Modal */}
       {deletePlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-sm rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -509,7 +502,6 @@ export const PlayersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Merge Players Modal */}
       {isMergeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-lg rounded-2xl border border-purple-500/30 bg-card p-6 shadow-2xl space-y-4">

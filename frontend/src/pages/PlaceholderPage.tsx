@@ -1,7 +1,3 @@
-/**
- * PlaceholderPage — clean placeholder for sections under development.
- * Shows a meaningful empty state instead of a blank screen.
- */
 import React from "react";
 import { Construction } from "lucide-react";
 

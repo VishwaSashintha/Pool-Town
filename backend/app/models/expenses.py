@@ -1,6 +1,3 @@
-"""
-Expense models — expense categories, expenses, and payments.
-"""
 from __future__ import annotations
 
 import enum
@@ -33,11 +30,8 @@ class ExpenseCategory(Base, TimestampMixin):
 
 
 class Expense(Base, TimestampMixin):
-    """
-    An expense bill/event.
-    Payment is tracked separately via ExpensePayment records.
-    Recording a payment does NOT create a new Expense.
-    """
+
+
     __tablename__ = "expenses"
     __table_args__ = (
         CheckConstraint("amount_paise > 0", name="ck_expense_amount_positive"),
@@ -58,7 +52,7 @@ class Expense(Base, TimestampMixin):
         SAEnum(ExpenseStatus), default=ExpenseStatus.UNPAID, nullable=False, index=True
     )
 
-    # Is this asset purchase (not operating expense)?
+
     is_asset: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     asset_account_code: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 

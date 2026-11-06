@@ -1,6 +1,3 @@
-/**
- * DailyReportPage — Comprehensive daily operational, revenue, expense, and cash reconciliation report.
- */
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -81,7 +78,7 @@ export const DailyReportPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -136,7 +133,7 @@ export const DailyReportPage: React.FC = () => {
         <div className="py-20 text-center text-slate-500">No report data found for this date.</div>
       ) : (
         <>
-          {/* Main Revenue & Net Income Highlight */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gross Day Revenue</span>
@@ -175,9 +172,8 @@ export const DailyReportPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Departmental Performance */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Pool Board */}
+
             <div className="bg-slate-800/70 border border-slate-700/60 rounded-xl p-4">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
@@ -191,7 +187,6 @@ export const DailyReportPage: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">First hour Rs. 500 + Rs. 300 / 30 min block</p>
             </div>
 
-            {/* PS4 Gaming */}
             <div className="bg-slate-800/70 border border-slate-700/60 rounded-xl p-4">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-semibold uppercase text-sky-400 flex items-center gap-1.5">
@@ -205,7 +200,6 @@ export const DailyReportPage: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">1P: Rs. 400/hr • 2P: Rs. 500/hr</p>
             </div>
 
-            {/* Soft Drinks */}
             <div className="bg-slate-800/70 border border-slate-700/60 rounded-xl p-4">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-xs font-semibold uppercase text-amber-400 flex items-center gap-1.5">
@@ -220,7 +214,6 @@ export const DailyReportPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Account & Liquid Balances as of Report Date */}
           <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-sm">
             <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
               <Banknote className="w-5 h-5 text-emerald-400" />
@@ -265,7 +258,6 @@ export const DailyReportPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Daily Reconciliation Checklist */}
           <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5">
             <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />

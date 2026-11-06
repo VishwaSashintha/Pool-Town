@@ -1,8 +1,3 @@
-"""
-Authoritative accounting journal service.
-Enforces double-entry invariants, period locking, and append-only immutability.
-All amounts are in integer paise (1 LKR = 100 paise).
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -17,22 +12,22 @@ from app.utils.money import validate_journal_balance
 
 
 class AccountingError(Exception):
-    """Base exception for accounting invariant violations."""
+
     pass
 
 
 class UnbalancedJournalEntryError(AccountingError):
-    """Raised when sum of debits does not equal sum of credits."""
+
     pass
 
 
 class ClosedPeriodError(AccountingError):
-    """Raised when attempting to post into a closed accounting period."""
+
     pass
 
 
 class ImmutableTransactionError(AccountingError):
-    """Raised when attempting to delete or directly modify a posted entry."""
+
     pass
 
 
@@ -48,7 +43,7 @@ class JournalLineInput:
 class JournalService:
     @staticmethod
     def generate_reference(db: Session, entry_date: date) -> str:
-        """Generate human-readable sequential reference: JE-YYYYMM-XXXX."""
+
         prefix = f"JE-{entry_date.strftime('%Y%m')}-"
         count = db.query(JournalEntry).filter(
             JournalEntry.reference.like(f"{prefix}%")
@@ -57,7 +52,7 @@ class JournalService:
 
     @staticmethod
     def get_or_create_period(db: Session, entry_date: date) -> AccountingPeriod:
-        """Fetch or create the calendar month accounting period."""
+
         period = db.query(AccountingPeriod).filter(
             AccountingPeriod.year == entry_date.year,
             AccountingPeriod.month == entry_date.month,
@@ -88,14 +83,8 @@ class JournalService:
         notes: Optional[str] = None,
         reference: Optional[str] = None,
     ) -> JournalEntry:
-        """
-        Create and post a balanced journal entry.
-        Invariants enforced:
-        1. sum(debits) == sum(credits)
-        2. All amounts > 0
-        3. Accounting period must not be closed
-        4. At least 2 lines required
-        """
+
+
         if len(lines) < 2:
             raise AccountingError("A journal entry must contain at least 2 lines.")
 
@@ -105,7 +94,7 @@ class JournalService:
                     f"Line amount must be positive. Received {line.amount_paise} for account {line.account_code}."
                 )
 
-        # Check debit/credit balance
+
         debit_amounts = [line.amount_paise for line in lines if line.is_debit]
         credit_amounts = [line.amount_paise for line in lines if not line.is_debit]
         total_debits = sum(debit_amounts)
@@ -118,7 +107,7 @@ class JournalService:
                 f"Total Debits: {total_debits} paise, Total Credits: {total_credits} paise."
             )
 
-        # Period check
+
         if source_type == "opening_balance":
             period_id = None
         else:
@@ -130,7 +119,7 @@ class JournalService:
                 )
             period_id = period.id
 
-        # Generate unique reference if not provided
+
         ref = reference or cls.generate_reference(db, entry_date)
 
         entry = JournalEntry(
@@ -171,10 +160,8 @@ class JournalService:
         reason: str,
         created_by: Optional[str] = None,
     ) -> JournalEntry:
-        """
-        Reverse a posted journal entry by creating an opposite entry.
-        Never deletes or modifies the original entry.
-        """
+
+
         original = db.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
         if not original:
             raise AccountingError(f"Journal entry {entry_id} not found.")
@@ -182,14 +169,14 @@ class JournalService:
         if original.status == JournalEntryStatus.REVERSED:
             raise AccountingError(f"Journal entry {original.reference} is already reversed.")
 
-        # Build reversed lines (switch debit and credit)
+
         reversed_lines: list[JournalLineInput] = []
         for line in original.lines:
             reversed_lines.append(
                 JournalLineInput(
                     account_code=line.account_code,
                     account_name=line.account_name,
-                    is_debit=not line.is_debit,  # Flip debit/credit
+                    is_debit=not line.is_debit,
                     amount_paise=line.amount_paise,
                     description=f"Reversal of {original.reference}: {line.description or ''}".strip(),
                 )
@@ -207,7 +194,7 @@ class JournalService:
         )
         reversal.reverses_entry_id = original.id
 
-        # Mark original as reversed
+
         original.status = JournalEntryStatus.REVERSED
         db.flush()
 
@@ -220,13 +207,8 @@ class JournalService:
         *,
         as_of_date: Optional[date] = None,
     ) -> int:
-        """
-        Calculate net account balance in paise as of a given date.
-        Asset / Expense / COGS / Distribution accounts (1xxx, 5xxx, 6xxx, 7xxx) are Debit-normal:
-            Balance = Debits - Credits
-        Liability / Equity / Revenue accounts (2xxx, 3xxx, 4xxx) are Credit-normal:
-            Balance = Credits - Debits
-        """
+
+
         query = db.query(
             func.coalesce(func.sum(JournalLine.amount_paise), 0)
         ).join(JournalEntry).filter(
@@ -241,11 +223,11 @@ class JournalService:
         total_credits = query.filter(JournalLine.is_debit == False).scalar() or 0
 
         first_digit = account_code[0] if account_code else "1"
-        # 1xxx (Assets), 5xxx (COGS), 6xxx (Expenses), 7xxx (Distributions) -> Normal debit
+
         if first_digit in ("1", "5", "6", "7"):
             return total_debits - total_credits
         else:
-            # 2xxx (Liabilities), 3xxx (Equity), 4xxx (Revenue) -> Normal credit
+
             return total_credits - total_debits
 
     @staticmethod
@@ -254,10 +236,8 @@ class JournalService:
         *,
         as_of_date: Optional[date] = None,
     ) -> list[dict]:
-        """
-        Generate trial balance across all accounts as of given date.
-        Returns list of {account_code, account_name, total_debit_paise, total_credit_paise, net_balance_paise}.
-        """
+
+
         query = db.query(
             JournalLine.account_code,
             JournalLine.account_name,

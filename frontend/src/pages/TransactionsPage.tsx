@@ -1,6 +1,3 @@
-/**
- * TransactionsPage — General Ledger transaction history, double-entry audit log, and journal inspector.
- */
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -100,7 +97,7 @@ export const TransactionsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -141,7 +138,6 @@ export const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Accounting Integrity Banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -175,10 +171,9 @@ export const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search and Filters */}
       <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Keyword Search */}
+
           <div className="relative sm:col-span-2">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -190,7 +185,6 @@ export const TransactionsPage: React.FC = () => {
             />
           </div>
 
-          {/* Account Filter */}
           <div>
             <select
               value={accountCode}
@@ -206,7 +200,6 @@ export const TransactionsPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Source Type */}
           <div>
             <select
               value={sourceType}
@@ -227,7 +220,6 @@ export const TransactionsPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Date Range Start / End */}
           <div className="flex items-center gap-1">
             <input
               type="date"
@@ -248,7 +240,6 @@ export const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Transactions List */}
       <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-700 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white">Journal Entries ({entries.length})</h2>
@@ -298,7 +289,6 @@ export const TransactionsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Expanded Debit/Credit Lines */}
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-1 bg-slate-900/60 border-t border-slate-700/40">
                       <div className="p-3 rounded-lg bg-slate-800/80 border border-slate-700/60 overflow-x-auto">

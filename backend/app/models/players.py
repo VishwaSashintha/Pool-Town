@@ -1,6 +1,3 @@
-"""
-Player model — reusable player records for sessions.
-"""
 from __future__ import annotations
 
 from datetime import date
@@ -15,11 +12,8 @@ if TYPE_CHECKING:
 
 
 class Player(Base, TimestampMixin):
-    """
-    A reusable player record.
-    One player can appear in many sessions.
-    Duplicate players are warned about but not auto-merged.
-    """
+
+
     __tablename__ = "players"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -28,13 +22,13 @@ class Player(Base, TimestampMixin):
     phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    # If this player was merged into another, point to the canonical record
+
     merged_into_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("players.id"), nullable=True
     )
     created_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    # Relationships
+
     pool_sessions: Mapped[list["PoolSession"]] = relationship(
         "PoolSession", back_populates="player", foreign_keys="PoolSession.player_id"
     )
@@ -53,10 +47,8 @@ class Player(Base, TimestampMixin):
 
 
 class PlayerAlias(Base, TimestampMixin):
-    """
-    Alternative names for a player (e.g., nicknames, old names before merge).
-    Preserved after player merges for audit purposes.
-    """
+
+
     __tablename__ = "player_aliases"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

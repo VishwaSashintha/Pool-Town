@@ -1,8 +1,3 @@
-"""
-Journal entry models — the core accounting ledger.
-Every financial event posts balanced debit/credit entries here.
-Rule: Sum(debits) = Sum(credits) for every journal entry (enforced at service layer).
-"""
 from __future__ import annotations
 
 import enum
@@ -24,17 +19,14 @@ class JournalEntryStatus(str, enum.Enum):
 
 
 class JournalEntry(Base, TimestampMixin):
-    """
-    A posted accounting journal entry.
-    May contain 2 or more JournalLines.
-    Must satisfy: sum(debit lines) = sum(credit lines).
-    """
+
+
     __tablename__ = "journal_entries"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     reference: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
 
-    # Business date (when the event occurred)
+
     entry_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
 
     description: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -42,16 +34,16 @@ class JournalEntry(Base, TimestampMixin):
         SAEnum(JournalEntryStatus), default=JournalEntryStatus.POSTED, nullable=False
     )
 
-    # Link to source document
+
     source_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    # If this entry reverses another
+
     reverses_entry_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("journal_entries.id"), nullable=True
     )
 
-    # Accounting period
+
     period_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("accounting_periods.id"), nullable=True
     )
@@ -68,10 +60,8 @@ class JournalEntry(Base, TimestampMixin):
 
 
 class JournalLine(Base):
-    """
-    A single debit or credit line in a journal entry.
-    amount_paise is always positive; is_debit determines direction.
-    """
+
+
     __tablename__ = "journal_lines"
     __table_args__ = (
         CheckConstraint("amount_paise > 0", name="ck_jline_amount_positive"),
@@ -83,7 +73,7 @@ class JournalLine(Base):
     )
     account_code: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     account_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    is_debit: Mapped[bool] = mapped_column(Boolean, nullable=False)  # True=DR, False=CR
+    is_debit: Mapped[bool] = mapped_column(Boolean, nullable=False)
     amount_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
@@ -103,10 +93,8 @@ class JournalLine(Base):
 
 
 class AccountingPeriod(Base, TimestampMixin):
-    """
-    A calendar month accounting period.
-    Once closed, transactions cannot be posted to this period without authorization.
-    """
+
+
     __tablename__ = "accounting_periods"
     __table_args__ = (
         CheckConstraint("year >= 2026", name="ck_period_year_valid"),

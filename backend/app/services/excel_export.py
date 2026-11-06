@@ -1,9 +1,3 @@
-"""
-Excel (.xlsx) Export Service for Pool Town ERP.
-Produces genuine, beautifully-formatted Microsoft Excel workbooks using openpyxl.
-Includes descriptive sheet names, professional headers, number/currency formatting,
-column auto-sizing, and complete accounting details.
-"""
 from __future__ import annotations
 
 import io
@@ -30,7 +24,7 @@ from app.models.owners import (
 from app.services.journal import JournalService
 from app.routers.drinks import _get_stock_on_hand
 
-# Palette matching Pool Town professional branding
+
 NAVY_HEADER_FILL = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
 SLATE_HEADER_FILL = PatternFill(start_color="334155", end_color="334155", fill_type="solid")
 ACCENT_BLUE_FILL = PatternFill(start_color="0284C7", end_color="0284C7", fill_type="solid")
@@ -54,7 +48,7 @@ DATE_FORMAT = "YYYY-MM-DD"
 
 
 def _auto_adjust_columns(ws, min_width=12):
-    """Auto-adjusts column widths to fit content gracefully."""
+
     for col in ws.columns:
         max_len = 0
         col_letter = get_column_letter(col[0].column)
@@ -68,7 +62,7 @@ def _auto_adjust_columns(ws, min_width=12):
 
 
 def _write_title_block(ws, title: str, subtitle: Optional[str] = None):
-    """Writes standard title and subtitle block at top of worksheet."""
+
     ws.append([f"POOL TOWN — {title.upper()}"])
     ws.cell(row=1, column=1).font = FONT_TITLE
     if subtitle:
@@ -77,11 +71,11 @@ def _write_title_block(ws, title: str, subtitle: Optional[str] = None):
     else:
         ws.append([f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}"])
         ws.cell(row=2, column=1).font = FONT_SUBTITLE
-    ws.append([])  # blank row
+    ws.append([])
 
 
 def _apply_header_style(ws, row_idx: int, col_count: int, fill=NAVY_HEADER_FILL):
-    """Applies bold white styling to table header row."""
+
     for c in range(1, col_count + 1):
         cell = ws.cell(row=row_idx, column=c)
         cell.font = FONT_HEADER
@@ -92,10 +86,10 @@ def _apply_header_style(ws, row_idx: int, col_count: int, fill=NAVY_HEADER_FILL)
 
 
 def export_daily_report(db: Session, report_date: date) -> io.BytesIO:
-    """Generates comprehensive Daily Business & Accounting Report."""
+
     wb = openpyxl.Workbook()
-    
-    # ── Sheet 1: Daily Summary
+
+
     ws_sum = wb.active
     ws_sum.title = "Daily Summary"
     _write_title_block(ws_sum, "Daily Performance & Cash Report", f"Report Date: {report_date.isoformat()}")
@@ -167,7 +161,7 @@ def export_daily_report(db: Session, report_date: date) -> io.BytesIO:
         r_idx += 1
     _auto_adjust_columns(ws_sum)
 
-    # ── Sheet 2: Pool & PS4 Sessions
+
     ws_sess = wb.create_sheet(title="Sessions Detail")
     _write_title_block(ws_sess, "Sessions Detail", f"Sessions recorded on {report_date.isoformat()}")
     s_headers = ["Type", "Session Ref", "Player Name", "Recorded At", "Duration (mins)", "Total Charge (Rs.)", "Status"]
@@ -210,7 +204,7 @@ def export_daily_report(db: Session, report_date: date) -> io.BytesIO:
 
     _auto_adjust_columns(ws_sess)
 
-    # ── Sheet 3: Expenses Detail
+
     ws_exp = wb.create_sheet(title="Expenses Detail")
     _write_title_block(ws_exp, "Daily Expenses Detail", f"Expenses paid on {report_date.isoformat()}")
     e_headers = ["Reference", "Category", "Payee", "Description", "Amount (Rs.)", "Payment Method", "Status"]
@@ -244,7 +238,7 @@ def export_daily_report(db: Session, report_date: date) -> io.BytesIO:
 
 
 def export_weekly_report(db: Session, week_date: date) -> io.BytesIO:
-    """Generates Weekly Performance & Breakdown Report."""
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Weekly Performance"
@@ -311,7 +305,7 @@ def export_weekly_report(db: Session, week_date: date) -> io.BytesIO:
         r_idx += 1
         curr += timedelta(days=1)
 
-    # Weekly Total Row
+
     ws.append([
         "TOTAL", "Weekly Sum",
         tot_pool / 100.0, tot_ps4 / 100.0, tot_drink / 100.0, tot_other / 100.0, tot_rev / 100.0,
@@ -333,7 +327,7 @@ def export_weekly_report(db: Session, week_date: date) -> io.BytesIO:
 
 
 def export_monthly_report(db: Session, year: int, month: int) -> io.BytesIO:
-    """Generates Monthly Financial & Partner Allocation Report."""
+
     from calendar import monthrange
     last_day = monthrange(year, month)[1]
     start_date = date(year, month, 1)
@@ -412,7 +406,7 @@ def export_monthly_report(db: Session, year: int, month: int) -> io.BytesIO:
         r_idx += 1
     _auto_adjust_columns(ws)
 
-    # ── Sheet 2: Partner Settlement Detail
+
     ws_part = wb.create_sheet(title="Partner Settlement")
     _write_title_block(ws_part, "Partner Distribution Settlement", f"Month: {year}-{month:02d}")
     p_headers = ["Partner Name", "Profit Share %", "Monthly Share (Rs.)", "Advances Received (Rs.)", "Distributions Paid (Rs.)", "Remaining Payable (Rs.)"]
@@ -467,11 +461,11 @@ def export_monthly_report(db: Session, year: int, month: int) -> io.BytesIO:
 
 
 def export_general_ledger(db: Session, start_date: Optional[date] = None, end_date: Optional[date] = None) -> io.BytesIO:
-    """Generates double-entry General Ledger audit export."""
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "General Ledger"
-    
+
     sub = f"Date Filter: {start_date or 'Beginning'} to {end_date or 'Latest'}"
     _write_title_block(ws, "General Ledger & Audit Trail", sub)
 
@@ -517,7 +511,7 @@ def export_general_ledger(db: Session, start_date: Optional[date] = None, end_da
     if r_idx == 5:
         ws.append(["No journal entries found for selected range", "", "", "", 0.0, 0.0, "", "", ""])
     else:
-        # Total Row
+
         ws.append(["TOTAL", "", "", "", tot_dr / 100.0, tot_cr / 100.0, f"Balanced: {'YES' if tot_dr == tot_cr else 'NO'}", "", ""])
         for c in range(1, 10):
             cell = ws.cell(row=r_idx, column=c)
@@ -535,11 +529,11 @@ def export_general_ledger(db: Session, start_date: Optional[date] = None, end_da
 
 
 def export_transactions(db: Session, start_date: Optional[date] = None, end_date: Optional[date] = None, account_id: Optional[int] = None) -> io.BytesIO:
-    """Generates Transaction History export."""
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Transaction History"
-    
+
     sub = f"Filter: {start_date or 'All'} to {end_date or 'Latest'}"
     if account_id:
         acct = db.query(FinancialAccount).filter(FinancialAccount.id == account_id).first()
@@ -593,7 +587,7 @@ def export_transactions(db: Session, start_date: Optional[date] = None, end_date
 
 
 def export_expenses(db: Session, start_date: Optional[date] = None, end_date: Optional[date] = None) -> io.BytesIO:
-    """Generates Business Expenses report."""
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Expenses Ledger"
@@ -654,9 +648,9 @@ def export_expenses(db: Session, start_date: Optional[date] = None, end_date: Op
 
 
 def export_cash_and_bank(db: Session) -> io.BytesIO:
-    """Generates Cash & Bank balances and movements export."""
+
     wb = openpyxl.Workbook()
-    
+
     ws_bal = wb.active
     ws_bal.title = "Treasury Balances"
     _write_title_block(ws_bal, "Cash & Bank Balances Overview", "Current live ledger balances")
@@ -700,7 +694,7 @@ def export_cash_and_bank(db: Session) -> io.BytesIO:
         r_idx += 1
     _auto_adjust_columns(ws_bal)
 
-    # Sheet 2: Account Transfers
+
     ws_trf = wb.create_sheet(title="Transfers History")
     _write_title_block(ws_trf, "Account Transfers History", "Internal movements between business accounts")
     t_headers = ["Date", "Transfer Ref", "From Account", "To Account", "Amount (Rs.)", "Description / Reason"]
@@ -735,7 +729,7 @@ def export_cash_and_bank(db: Session) -> io.BytesIO:
 
 
 def export_savings(db: Session) -> io.BytesIO:
-    """Generates dedicated Business Savings report."""
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Savings Reserve"
@@ -767,7 +761,7 @@ def export_savings(db: Session) -> io.BytesIO:
 
     _auto_adjust_columns(ws)
 
-    # Sheet 2: Savings Movements
+
     ws_mov = wb.create_sheet(title="Savings Transfers")
     _write_title_block(ws_mov, "Savings Fund Movements", "Transfers to, from, or between savings accounts")
     m_headers = ["Date", "Reference", "Source Account", "Destination Account", "Amount (Rs.)", "Narration"]
@@ -806,14 +800,14 @@ def export_savings(db: Session) -> io.BytesIO:
 
 
 def export_partners(db: Session, year: Optional[int] = None, month: Optional[int] = None) -> io.BytesIO:
-    """Generates Partners, Capital, Advances, and Collections report."""
+
     now = datetime.now()
     y = year or now.year
     m = month or now.month
 
     wb = openpyxl.Workbook()
-    
-    # Sheet 1: Monthly Settlement
+
+
     ws_set = wb.active
     ws_set.title = "Monthly Profit Sharing"
     _write_title_block(ws_set, "Partner Distribution & Advance Settlement", f"Period: {y}-{m:02d}")
@@ -821,7 +815,7 @@ def export_partners(db: Session, year: Optional[int] = None, month: Optional[int
     from calendar import monthrange
     last_d = monthrange(y, m)[1]
     st, en = date(y, m, 1), date(y, m, last_d)
-    
+
     p_rev = db.query(func.coalesce(func.sum(PoolSession.final_charge_paise), 0)).filter(
         PoolSession.session_date >= st, PoolSession.session_date <= en, PoolSession.status != SessionStatus.CANCELLED
     ).scalar() or 0
@@ -888,7 +882,7 @@ def export_partners(db: Session, year: Optional[int] = None, month: Optional[int
         r_idx += 1
     _auto_adjust_columns(ws_set)
 
-    # Sheet 2: Collections by Partners
+
     ws_col = wb.create_sheet(title="Money Collected History")
     _write_title_block(ws_col, "Money Collected by Partners", "Records of all cash collected by Akash, Pasan, or Vishwa")
     c_headers = ["Date", "Collection Ref", "Collected By", "Amount (Rs.)", "Status", "Where Money Is Now", "Source Category", "Notes"]
@@ -921,7 +915,7 @@ def export_partners(db: Session, year: Optional[int] = None, month: Optional[int
 
     _auto_adjust_columns(ws_col)
 
-    # Sheet 3: Capital & Advances Transactions
+
     ws_tx = wb.create_sheet(title="Partner Transactions")
     _write_title_block(ws_tx, "Partner Financial Events Ledger", "All capital contributions, advances, and distributions")
     tx_headers = ["Date", "Reference", "Partner", "Transaction Type", "Amount (Rs.)", "Payment Method / Account", "Period", "Description"]
@@ -960,7 +954,7 @@ def export_partners(db: Session, year: Optional[int] = None, month: Optional[int
 
 
 def export_loans(db: Session) -> io.BytesIO:
-    """Generates Business Loans & Repayments report."""
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Business Loans"
@@ -1001,7 +995,7 @@ def export_loans(db: Session) -> io.BytesIO:
 
     _auto_adjust_columns(ws)
 
-    # Sheet 2: Repayments
+
     ws_rep = wb.create_sheet(title="Repayment Transactions")
     _write_title_block(ws_rep, "Loan Repayment Ledger", "Record of all principal and interest payments")
     r_headers = ["Date", "Transaction Ref", "Lender", "Transaction Type", "Amount Paid (Rs.)", "Payment Method Account", "Notes"]
@@ -1038,10 +1032,10 @@ def export_loans(db: Session) -> io.BytesIO:
 
 
 def export_drinks(db: Session, start_date: Optional[date] = None, end_date: Optional[date] = None) -> io.BytesIO:
-    """Generates Soft Drinks inventory, valuation, and sales report."""
+
     wb = openpyxl.Workbook()
-    
-    # Sheet 1: Inventory & Stock Valuation
+
+
     ws_inv = wb.active
     ws_inv.title = "Current Stock Valuation"
     _write_title_block(ws_inv, "Soft Drinks Inventory & Valuation", "Current stock levels and retail pricing")
@@ -1092,7 +1086,7 @@ def export_drinks(db: Session, start_date: Optional[date] = None, end_date: Opti
 
     _auto_adjust_columns(ws_inv)
 
-    # Sheet 2: Beverage Sales History
+
     ws_sales = wb.create_sheet(title="Beverage Sales")
     _write_title_block(ws_sales, "Soft Drink Sales History", f"Filter: {start_date or 'Beginning'} to {end_date or 'Latest'}")
     s_headers = ["Date", "Receipt Ref", "Product Name", "Quantity", "Selling Price (Rs.)", "Total Revenue (Rs.)", "Status"]

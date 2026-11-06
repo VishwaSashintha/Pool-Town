@@ -1,6 +1,3 @@
-"""
-Owner and loan models — capital, distributions, profit allocations, loans.
-"""
 from __future__ import annotations
 
 import enum
@@ -19,8 +16,8 @@ class OwnerTransactionType(str, enum.Enum):
     INITIAL_CAPITAL = "initial_capital"
     ADDITIONAL_CAPITAL = "additional_capital"
     RETURN_OF_CAPITAL = "return_of_capital"
-    OWNER_LOAN = "owner_loan"           # Owner lends to business → liability
-    LOAN_REPAYMENT = "loan_repayment"  # Business repays owner loan
+    OWNER_LOAN = "owner_loan"
+    LOAN_REPAYMENT = "loan_repayment"
     PROFIT_ALLOCATION = "profit_allocation"
     DISTRIBUTION = "distribution"
     ADVANCE = "advance"
@@ -33,7 +30,7 @@ class Owner(Base, TimestampMixin):
     __tablename__ = "owners"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    profit_share_bps: Mapped[int] = mapped_column(Integer, nullable=False)  # basis points (2000 = 20%)
+    profit_share_bps: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
 
@@ -46,7 +43,7 @@ class Owner(Base, TimestampMixin):
 
 
 class OwnerTransaction(Base, TimestampMixin):
-    """Every financial event involving an owner's capital account."""
+
     __tablename__ = "owner_transactions"
     __table_args__ = (
         CheckConstraint("amount_paise > 0", name="ck_owner_tx_amount_positive"),
@@ -78,10 +75,8 @@ class OwnerTransaction(Base, TimestampMixin):
 
 
 class ProfitAllocation(Base, TimestampMixin):
-    """
-    A formal profit allocation event (posted after period close, not automatic).
-    allocation_basis_paise: the net profit amount being allocated.
-    """
+
+
     __tablename__ = "profit_allocations"
     __table_args__ = (
         CheckConstraint("allocation_basis_paise >= 0", name="ck_palloc_basis_nonneg"),
@@ -114,7 +109,7 @@ class ProfitAllocationLine(Base):
     allocation_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("profit_allocations.id", ondelete="CASCADE"), nullable=False
     )
-    recipient: Mapped[str] = mapped_column(String(100), nullable=False)  # 'savings', 'akash', etc.
+    recipient: Mapped[str] = mapped_column(String(100), nullable=False)
     share_bps: Mapped[int] = mapped_column(Integer, nullable=False)
     amount_paise: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -136,7 +131,7 @@ class LoanStatus(str, enum.Enum):
 
 
 class Loan(Base, TimestampMixin):
-    """A loan from a bank, external lender, or owner."""
+
     __tablename__ = "loans"
     __table_args__ = (
         CheckConstraint("original_principal_paise > 0", name="ck_loan_principal_positive"),
@@ -150,14 +145,14 @@ class Loan(Base, TimestampMixin):
     original_principal_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     opening_outstanding_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
-    interest_rate_bps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # per annum
+    interest_rate_bps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     repayment_terms: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[LoanStatus] = mapped_column(
         SAEnum(LoanStatus), default=LoanStatus.ACTIVE, nullable=False
     )
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    # Owner link if loan_type == OWNER
+
     owner_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("owners.id"), nullable=True
     )
@@ -168,7 +163,7 @@ class Loan(Base, TimestampMixin):
 
 
 class LoanTransactionType(str, enum.Enum):
-    RECEIPT = "receipt"           # Received loan funds
+    RECEIPT = "receipt"
     PRINCIPAL_REPAYMENT = "principal_repayment"
     INTEREST_PAYMENT = "interest_payment"
     FEE = "fee"
@@ -178,11 +173,8 @@ class LoanTransactionType(str, enum.Enum):
 
 
 class LoanTransaction(Base, TimestampMixin):
-    """
-    A single transaction against a loan.
-    If a payment includes both principal and interest,
-    record two separate LoanTransaction records.
-    """
+
+
     __tablename__ = "loan_transactions"
     __table_args__ = (
         CheckConstraint("amount_paise > 0", name="ck_loan_tx_amount_positive"),
@@ -216,11 +208,8 @@ class OwnerCollectionStatus(str, enum.Enum):
 
 
 class OwnerCollection(Base, TimestampMixin):
-    """
-    Records business money collected by an owner/partner (Akash, Pasan, Vishwa).
-    Supports pending confirmation when exact amount is temporarily unknown.
-    Treated as business money, not automatically personal drawing or capital.
-    """
+
+
     __tablename__ = "owner_collections"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -230,7 +219,7 @@ class OwnerCollection(Base, TimestampMixin):
         Integer, ForeignKey("owners.id"), nullable=True, index=True
     )
     collection_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    amount_paise: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Null if amount is unknown
+    amount_paise: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[OwnerCollectionStatus] = mapped_column(
         SAEnum(OwnerCollectionStatus), default=OwnerCollectionStatus.CONFIRMED, nullable=False
     )
@@ -247,4 +236,3 @@ class OwnerCollection(Base, TimestampMixin):
     )
 
     owner: Mapped[Optional["Owner"]] = relationship("Owner")
-

@@ -9,7 +9,6 @@ export const InventoryPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Form
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("bottle");
   const [sellingPriceRupees, setSellingPriceRupees] = useState<number>(150);
@@ -69,7 +68,6 @@ export const InventoryPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Products Table */}
       <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden glass-panel">
         {isLoading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">Loading inventory...</div>
@@ -140,7 +138,6 @@ export const InventoryPage: React.FC = () => {
         )}
       </div>
 
-      {/* Add Product Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-4">

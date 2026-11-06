@@ -1,9 +1,3 @@
-"""
-Authentication router — login, verify password, change password.
-Credentials are stored hashed in AppSetting table.
-Default: admin / admin123
-Edit-auth PIN: stored as 'edit_auth_pin' in AppSetting (default: 123).
-"""
 from __future__ import annotations
 
 import hashlib
@@ -22,22 +16,20 @@ from app.models.audit import AppSetting, AuditLog
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
-# In-memory session tokens (simple local-only approach; no JWT needed for local app)
-_active_tokens: dict[str, str] = {}  # token -> username
 
-# ---------------------------------------------------------------------------
-# Login rate limiter — 5 failed attempts per 5-minute window per IP
-# ---------------------------------------------------------------------------
-_RATE_LIMIT_WINDOW = 300   # seconds (5 minutes)
-_RATE_LIMIT_MAX = 5        # max failures before lockout
-_failed_attempts: dict[str, list[float]] = defaultdict(list)  # ip -> [timestamps]
+_active_tokens: dict[str, str] = {}
+
+
+_RATE_LIMIT_WINDOW = 300
+_RATE_LIMIT_MAX = 5
+_failed_attempts: dict[str, list[float]] = defaultdict(list)
 
 
 def _check_rate_limit(ip: str) -> None:
-    """Raise 429 if IP has too many recent failed attempts."""
+
     now = time.monotonic()
     attempts = [t for t in _failed_attempts.get(ip, []) if now - t < _RATE_LIMIT_WINDOW]
-    _failed_attempts[ip] = attempts  # prune old entries
+    _failed_attempts[ip] = attempts
     if len(attempts) >= _RATE_LIMIT_MAX:
         retry_after = int(_RATE_LIMIT_WINDOW - (now - attempts[0]))
         raise HTTPException(
@@ -55,15 +47,9 @@ def _clear_failures(ip: str) -> None:
     _failed_attempts.pop(ip, None)
 
 
-# ---------------------------------------------------------------------------
-# Auth dependency — protects write endpoints from unauthenticated HTTP access
-# ---------------------------------------------------------------------------
 def get_current_user(x_auth_token: Optional[str] = Header(default=None)) -> str:
-    """
-    FastAPI dependency for write-endpoint protection.
-    Validates the X-Auth-Token header against active session tokens.
-    Returns the authenticated username or raises 401.
-    """
+
+
     if not x_auth_token or x_auth_token not in _active_tokens:
         raise HTTPException(
             status_code=401,
@@ -73,7 +59,7 @@ def get_current_user(x_auth_token: Optional[str] = Header(default=None)) -> str:
 
 
 def _hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
-    """Hash a password with a random salt using SHA-256."""
+
     if salt is None:
         salt = secrets.token_hex(16)
     digest = hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
@@ -99,7 +85,7 @@ def _set_setting(db: Session, key: str, value: str, description: str = "") -> No
 
 
 def ensure_default_credentials(db: Session) -> None:
-    """Create default admin credentials if they don't exist."""
+
     if not _get_setting(db, "admin_password_hash"):
         pw_hash, salt = _hash_password("admin123")
         _set_setting(db, "admin_username", '"admin"', "Admin login username")
@@ -135,10 +121,10 @@ class VerifyPinRequest(BaseModel):
 
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db), x_forwarded_for: Optional[str] = Header(default=None)):
-    """Authenticate with username and password. Rate limited to 5 failures per 5 minutes."""
+
     ensure_default_credentials(db)
 
-    # Use X-Forwarded-For or fallback identifier for rate limiting
+
     client_ip = x_forwarded_for or "local"
     _check_rate_limit(client_ip)
 
@@ -158,14 +144,14 @@ def login(payload: LoginRequest, db: Session = Depends(get_db), x_forwarded_for:
         _record_failure(client_ip)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    # Success — clear failure history
+
     _clear_failures(client_ip)
 
-    # Issue a session token
+
     token = secrets.token_urlsafe(32)
     _active_tokens[token] = stored_username
 
-    # Audit log
+
     db.add(AuditLog(
         entity_type="auth",
         entity_id=0,
@@ -180,14 +166,14 @@ def login(payload: LoginRequest, db: Session = Depends(get_db), x_forwarded_for:
 
 @router.post("/logout")
 def logout(token: str, db: Session = Depends(get_db)):
-    """Invalidate session token."""
+
     _active_tokens.pop(token, None)
     return {"message": "Logged out"}
 
 
 @router.post("/verify")
 def verify_token(token: str):
-    """Check if a session token is valid."""
+
     if token in _active_tokens:
         return {"valid": True, "username": _active_tokens[token]}
     return {"valid": False}
@@ -195,7 +181,7 @@ def verify_token(token: str):
 
 @router.post("/verify-pin")
 def verify_edit_pin(payload: VerifyPinRequest, db: Session = Depends(get_db)):
-    """Verify the edit-authorisation PIN."""
+
     ensure_default_credentials(db)
     import json
     hash_s = _get_setting(db, "edit_auth_pin_hash")
@@ -211,7 +197,7 @@ def verify_edit_pin(payload: VerifyPinRequest, db: Session = Depends(get_db)):
 
 @router.post("/change-password")
 def change_password(payload: ChangePasswordRequest, db: Session = Depends(get_db)):
-    """Change admin username and/or password after verifying current password."""
+
     ensure_default_credentials(db)
     import json
     hash_s = _get_setting(db, "admin_password_hash")
@@ -240,7 +226,7 @@ def change_password(payload: ChangePasswordRequest, db: Session = Depends(get_db
     else:
         username = json.loads(user_s.value)
 
-    # Invalidate all existing tokens
+
     _active_tokens.clear()
 
     db.add(AuditLog(
@@ -266,7 +252,7 @@ def change_edit_pin(
     new_pin: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """Change the edit-authorisation PIN. Supports either JSON body or query params."""
+
     cur_pin = (payload.current_pin if payload else current_pin) or ""
     n_pin = (payload.new_pin if payload else new_pin) or ""
     if not cur_pin or not n_pin:
@@ -287,4 +273,3 @@ def change_edit_pin(
     _set_setting(db, "edit_auth_pin_salt", f'"{new_salt}"', "Edit authorization PIN salt")
     db.commit()
     return {"message": "PIN changed successfully"}
-

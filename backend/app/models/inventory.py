@@ -1,7 +1,3 @@
-"""
-Inventory models — products, suppliers, stock movements, physical counts.
-All amounts in INTEGER paise.
-"""
 from __future__ import annotations
 
 import enum
@@ -47,10 +43,8 @@ class Supplier(Base, TimestampMixin):
 
 
 class Product(Base, TimestampMixin):
-    """
-    A product in the catalogue.
-    current_avg_cost_paise: weighted-average unit cost (paise), updated on each purchase.
-    """
+
+
     __tablename__ = "products"
     __table_args__ = (
         CheckConstraint("purchase_price_paise >= 0", name="ck_product_purchase_nonneg"),
@@ -84,10 +78,8 @@ class Product(Base, TimestampMixin):
 
 
 class StockPurchase(Base, TimestampMixin):
-    """
-    A purchase order from a supplier.
-    Creates StockMovement records when received.
-    """
+
+
     __tablename__ = "stock_purchases"
     __table_args__ = (
         CheckConstraint("total_cost_paise >= 0", name="ck_purchase_total_nonneg"),
@@ -136,13 +128,8 @@ class StockPurchaseItem(Base):
 
 
 class StockMovement(Base, TimestampMixin):
-    """
-    A single stock change event.
-    quantity_change: positive = stock in, negative = stock out.
-    
-    This is the ledger; never overwrite a previous movement.
-    Calculate on-hand from all movements.
-    """
+
+
     __tablename__ = "stock_movements"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -152,13 +139,12 @@ class StockMovement(Base, TimestampMixin):
     movement_type: Mapped[StockMovementType] = mapped_column(
         SAEnum(StockMovementType), nullable=False
     )
-    quantity_change: Mapped[int] = mapped_column(Integer, nullable=False)  # +in / -out
+    quantity_change: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_cost_paise: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    # When the stock event actually occurred
+
     event_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    # When this was recorded in the system
-    # (created_at from TimestampMixin serves as record_date)
+
 
     reference: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -174,11 +160,8 @@ class StockMovement(Base, TimestampMixin):
 
 
 class PhysicalStockCount(Base, TimestampMixin):
-    """
-    A physical stock count on a specific date.
-    Records: counted quantity vs expected quantity.
-    Does NOT auto-create stock movements; requires explicit correction entry.
-    """
+
+
     __tablename__ = "physical_stock_counts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -188,7 +171,7 @@ class PhysicalStockCount(Base, TimestampMixin):
     )
     counted_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     expected_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    discrepancy: Mapped[int] = mapped_column(Integer, nullable=False)  # counted - expected
+    discrepancy: Mapped[int] = mapped_column(Integer, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     investigated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     investigation_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -201,10 +184,8 @@ class PhysicalStockCount(Base, TimestampMixin):
 
 
 class ProductSale(Base, TimestampMixin):
-    """
-    A product sale record.
-    Creates stock movement (−qty) and journal entries (DR AR, CR Revenue; DR COGS, CR Inventory).
-    """
+
+
     __tablename__ = "product_sales"
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_sale_qty_positive"),
@@ -220,7 +201,7 @@ class ProductSale(Base, TimestampMixin):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     total_revenue_paise: Mapped[int] = mapped_column(Integer, nullable=False)
-    unit_cost_paise: Mapped[int] = mapped_column(Integer, nullable=False)  # avg cost at time of sale
+    unit_cost_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     total_cogs_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     collected_paise: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

@@ -1,7 +1,3 @@
-"""
-Financial account models — Cash, Bank, Savings, etc.
-Account balances are NEVER stored; they are always calculated from transactions.
-"""
 from __future__ import annotations
 
 import enum
@@ -24,13 +20,8 @@ class AccountType(str, enum.Enum):
 
 
 class FinancialAccount(Base, TimestampMixin):
-    """
-    A logical financial account (Cash in Hand, Main Bank, Savings, etc.).
-    Balance = opening_balance + sum of all credit journal lines - sum of all debit journal lines
-    (for liability/equity accounts) or the reverse for asset accounts.
-    
-    IMPORTANT: Never store a current_balance field here. Always calculate from journal entries.
-    """
+
+
     __tablename__ = "financial_accounts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -46,11 +37,8 @@ class FinancialAccount(Base, TimestampMixin):
 
 
 class AccountTransfer(Base, TimestampMixin):
-    """
-    A transfer between two financial accounts.
-    Creates two balanced journal entries (DR destination, CR source).
-    This is NOT new income or a new expense.
-    """
+
+
     __tablename__ = "account_transfers"
     __table_args__ = (
         CheckConstraint("amount_paise > 0", name="ck_transfer_amount_positive"),
@@ -85,11 +73,8 @@ class AccountTransfer(Base, TimestampMixin):
 
 
 class CashCount(Base, TimestampMixin):
-    """
-    A physical cash count recorded by the user.
-    Difference = counted_paise - expected_paise (calculated at time of count).
-    Never auto-adjusted.
-    """
+
+
     __tablename__ = "cash_counts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -99,7 +84,7 @@ class CashCount(Base, TimestampMixin):
     )
     counted_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     expected_paise: Mapped[int] = mapped_column(Integer, nullable=False)
-    difference_paise: Mapped[int] = mapped_column(Integer, nullable=False)  # counted - expected
+    difference_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     investigated_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     investigation_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -107,11 +92,8 @@ class CashCount(Base, TimestampMixin):
 
 
 class BankReconciliation(Base, TimestampMixin):
-    """
-    A bank statement reconciliation.
-    statement_balance_paise: amount shown on the bank statement.
-    book_balance_paise: our calculated balance from journal entries.
-    """
+
+
     __tablename__ = "bank_reconciliations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

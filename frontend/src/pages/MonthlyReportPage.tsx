@@ -1,6 +1,3 @@
-/**
- * MonthlyReportPage — Official monthly income statement, expense ledger, and 40/20/20/20 profit allocation.
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -131,7 +128,7 @@ export const MonthlyReportPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -144,7 +141,7 @@ export const MonthlyReportPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          {/* Month Navigator */}
+
           <div className="flex items-center bg-slate-800/80 border border-slate-700 rounded-lg p-1">
             <button
               onClick={handlePrevMonth}
@@ -211,7 +208,7 @@ export const MonthlyReportPage: React.FC = () => {
         <div className="py-20 text-center text-slate-500">No report available for this period.</div>
       ) : (
         <>
-          {/* Headline Financial Metrics */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -252,7 +249,6 @@ export const MonthlyReportPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Income Statement Table */}
           <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-700 flex items-center justify-between">
               <h2 className="text-sm font-bold text-white uppercase tracking-wider">
@@ -264,7 +260,7 @@ export const MonthlyReportPage: React.FC = () => {
             </div>
 
             <div className="p-5 space-y-6">
-              {/* Revenues */}
+
               <div>
                 <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
                   1. Operating Revenues
@@ -295,7 +291,6 @@ export const MonthlyReportPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Operating Expenses */}
               <div>
                 <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">
                   2. Operating Expenses & Overheads
@@ -306,7 +301,6 @@ export const MonthlyReportPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Net Distributable Profit */}
               <div className="p-4 rounded-xl bg-slate-900 border-2 border-emerald-500/30 flex justify-between items-center">
                 <div>
                   <span className="text-xs uppercase font-bold text-slate-400">Net Distributable Partnership Profit</span>
@@ -319,7 +313,6 @@ export const MonthlyReportPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Profit Allocation Model (40/20/20/20) */}
           <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div>
@@ -343,7 +336,7 @@ export const MonthlyReportPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-              {/* Savings */}
+
               <div className="p-4 rounded-xl bg-slate-900/80 border border-emerald-500/30">
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span className="font-semibold text-emerald-400">Savings Reserve</span>
@@ -355,7 +348,6 @@ export const MonthlyReportPage: React.FC = () => {
                 <p className="text-[11px] text-slate-500 mt-1">40% Business Savings</p>
               </div>
 
-              {/* Akash */}
               <div className="p-4 rounded-xl bg-slate-900/80 border border-sky-500/30">
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span className="font-semibold text-sky-400">Akash</span>
@@ -367,7 +359,6 @@ export const MonthlyReportPage: React.FC = () => {
                 <p className="text-[11px] text-slate-500 mt-1">Partner Monthly Share</p>
               </div>
 
-              {/* Pasan */}
               <div className="p-4 rounded-xl bg-slate-900/80 border border-sky-500/30">
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span className="font-semibold text-sky-400">Pasan</span>
@@ -379,7 +370,6 @@ export const MonthlyReportPage: React.FC = () => {
                 <p className="text-[11px] text-slate-500 mt-1">Partner Monthly Share</p>
               </div>
 
-              {/* Vishwa */}
               <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/30">
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span className="font-semibold text-indigo-400">Vishwa</span>

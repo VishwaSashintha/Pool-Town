@@ -1,10 +1,3 @@
-/**
- * SettingsPage — Essential ERP Configuration.
- * Simplified into 3 practical, clean tabs:
- * 1. Pricing & Rates (Editable Pool, PS4, and drink catalog pricing with admin verification)
- * 2. Security & Credentials (Admin password and Edit-PIN management)
- * 3. Backup & Recovery (Manual snapshots and safe database restore)
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -28,8 +21,6 @@ import { api } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { formatLKR, rupeesToPaise, paiseToRupees } from "@/lib/money";
 import type { BackupSnapshot, PricingRatesResponse } from "@/types";
-
-/* ── UI Helpers ─────────────────────────────────────────────────────────── */
 
 const SectionCard: React.FC<{
   title: string;
@@ -100,19 +91,15 @@ const AlertBanner: React.FC<{
   </div>
 );
 
-/* ── Tab 1: Pricing & Rates (Editable with Admin Auth) ───────────────────── */
-
 const PricingTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [adminUser, setAdminUser] = useState("admin");
   const [adminPass, setAdminPass] = useState("");
   const [showPass, setShowPass] = useState(false);
 
-  // Form rates in rupees
   const [poolBaseRupees, setPoolBaseRupees] = useState(500);
   const [poolBlockRupees, setPoolBlockRupees] = useState(300);
   const [ps41pRupees, setPs41pRupees] = useState(400);
@@ -179,7 +166,6 @@ const PricingTab: React.FC = () => {
   const ps41p = rates?.ps4_1player_rate_paise ?? 40000;
   const ps42p = rates?.ps4_2players_rate_paise ?? 50000;
 
-  // Calculate standard pool durations for preview table
   const calcPool = (mins: number) => {
     if (mins <= 60) return poolBase;
     const hours = Math.floor(mins / 60);
@@ -193,7 +179,6 @@ const PricingTab: React.FC = () => {
     <div className="space-y-6">
       {msg && <AlertBanner type={msg.type} message={msg.text} onClose={() => setMsg(null)} />}
 
-      {/* Top Banner & Edit Button */}
       <div
         className="rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -215,9 +200,8 @@ const PricingTab: React.FC = () => {
         </button>
       </div>
 
-      {/* Rate Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Pool Base */}
+
         <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
           <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
             <CircleDot className="w-4 h-4 text-sky-400" />
@@ -227,7 +211,6 @@ const PricingTab: React.FC = () => {
           <p className="text-[11px] text-slate-400">Up to 60 minutes base play</p>
         </div>
 
-        {/* Pool 30m block */}
         <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
           <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
             <CircleDot className="w-4 h-4 text-sky-400" />
@@ -237,7 +220,6 @@ const PricingTab: React.FC = () => {
           <p className="text-[11px] text-slate-400">Per additional 30 minutes</p>
         </div>
 
-        {/* PS4 1 Player */}
         <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
           <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
             <Gamepad2 className="w-4 h-4 text-indigo-400" />
@@ -247,7 +229,6 @@ const PricingTab: React.FC = () => {
           <p className="text-[11px] text-slate-400">Per hour rate (single player)</p>
         </div>
 
-        {/* PS4 2 Players */}
         <div className="p-4 rounded-xl space-y-1.5" style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}>
           <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
             <Gamepad2 className="w-4 h-4 text-indigo-400" />
@@ -258,9 +239,8 @@ const PricingTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Pricing Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pool Table Schedule */}
+
         <SectionCard
           title="Pool Table Duration Schedule"
           subtitle="Calculated automatically using current base and extension rates."
@@ -292,7 +272,6 @@ const PricingTab: React.FC = () => {
           </div>
         </SectionCard>
 
-        {/* PS4 Schedule & Soft Drinks */}
         <div className="space-y-6">
           <SectionCard
             title="PS4 Gaming Schedule"
@@ -341,7 +320,6 @@ const PricingTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Prices Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -428,7 +406,6 @@ const PricingTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Admin Authorization section */}
               <div
                 className="p-4 rounded-xl space-y-3 mt-4"
                 style={{ backgroundColor: "#0F172A", border: "1px solid #334155" }}
@@ -497,14 +474,11 @@ const PricingTab: React.FC = () => {
   );
 };
 
-/* ── Tab 2: Security & Credentials ───────────────────────────────────────── */
-
 const SecurityTab: React.FC = () => {
   const { logout } = useAuth();
   const [passMsg, setPassMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [pinMsg, setPinMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Password fields
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [newUsername, setNewUsername] = useState("");
@@ -512,7 +486,6 @@ const SecurityTab: React.FC = () => {
   const [showNewPass, setShowNewPass] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
 
-  // PIN fields
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -575,7 +548,7 @@ const SecurityTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Change Password */}
+
       <SectionCard
         title="Change Admin Password"
         subtitle="Update login credentials for administrative access."
@@ -658,7 +631,6 @@ const SecurityTab: React.FC = () => {
         </form>
       </SectionCard>
 
-      {/* Change Edit-Auth PIN */}
       <SectionCard
         title="Edit-Authorization PIN"
         subtitle="Used across the ERP to authorize session adjustments, retroactive edits, and sale voids."
@@ -730,8 +702,6 @@ const SecurityTab: React.FC = () => {
   );
 };
 
-/* ── Tab 3: Backup & Recovery ────────────────────────────────────────────── */
-
 const BackupTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [backupMsg, setBackupMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -775,7 +745,6 @@ const BackupTab: React.FC = () => {
         <AlertBanner type={backupMsg.type} message={backupMsg.text} onClose={() => setBackupMsg(null)} />
       )}
 
-      {/* Snapshot creation card */}
       <SectionCard
         title="Create Database Snapshot"
         subtitle="Generates an isolated, atomic copy of billiard.db in the backend backups directory."
@@ -797,7 +766,6 @@ const BackupTab: React.FC = () => {
         </div>
       </SectionCard>
 
-      {/* Existing snapshots list */}
       <SectionCard
         title="Available Backup Snapshots"
         subtitle="Stored in ./backend/backups with cryptographic SHA-256 integrity hashes."
@@ -854,8 +822,6 @@ const BackupTab: React.FC = () => {
   );
 };
 
-/* ── Main SettingsPage Shell ────────────────────────────────────────────── */
-
 type TabKey = "pricing" | "security" | "backup";
 
 export const SettingsPage: React.FC = () => {
@@ -869,7 +835,7 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12 font-sans">
-      {/* Page Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">
@@ -881,7 +847,6 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Navigation */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-800">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -911,7 +876,6 @@ export const SettingsPage: React.FC = () => {
         })}
       </div>
 
-      {/* Tab Panels */}
       <div>
         {activeTab === "pricing" && <PricingTab />}
         {activeTab === "security" && <SecurityTab />}

@@ -7,10 +7,8 @@ echo          Billiard Hall Management System - System Startup
 echo ======================================================================
 echo.
 
-:: 1. Ensure working directory is project root
 cd /d "%~dp0"
 
-:: 2. Verify required project directories exist
 if not exist "%~dp0backend" (
     echo [ERROR] Backend directory not found: "%~dp0backend"
     echo Please make sure start.bat is located in the project root folder.
@@ -27,7 +25,6 @@ if not exist "%~dp0frontend" (
     exit /b 1
 )
 
-:: 3. Verify existing separate startup scripts exist
 if not exist "%~dp0start-backend.bat" (
     echo [ERROR] start-backend.bat not found in "%~dp0"
     echo Please ensure start-backend.bat is present.
@@ -44,7 +41,6 @@ if not exist "%~dp0start-frontend.bat" (
     exit /b 1
 )
 
-:: 4. Check for virtual environments and Python/Uvicorn availability
 set "VENV_DIR="
 if exist "%~dp0backend\.venv\Scripts\uvicorn.exe" (
     set "VENV_DIR=%~dp0backend\.venv"
@@ -73,7 +69,6 @@ if defined VENV_DIR (
     )
 )
 
-:: 5. Check for Node.js / npm availability
 where npm >nul 2>&1
 if !errorlevel! neq 0 (
     echo [ERROR] npm command was not found in PATH.
@@ -83,7 +78,6 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-:: 6. Check if backend or frontend are already running (Duplicate Prevention)
 set "BACKEND_ALREADY_RUNNING=0"
 netstat -ano | findstr /C:":8000 " | findstr /I "LISTENING" >nul 2>&1
 if !errorlevel! equ 0 (
@@ -98,7 +92,6 @@ if !errorlevel! equ 0 (
     echo [INFO] Frontend is already running on port 5173. Skipping duplicate startup.
 )
 
-:: 7. Launch services in separate command windows if not already running
 if !BACKEND_ALREADY_RUNNING! equ 0 (
     echo Starting Backend in a separate window on port 8000...
     start "Billiard Hall Backend :8000" "%~dp0start-backend.bat"
@@ -109,7 +102,6 @@ if !FRONTEND_ALREADY_RUNNING! equ 0 (
     start "Billiard Hall Frontend :5173" "%~dp0start-frontend.bat"
 )
 
-:: 8. Readiness check before opening browser
 echo.
 echo Verifying service readiness...
 
@@ -163,7 +155,6 @@ if !FRONTEND_READY! equ 1 (
     echo   [WARNING] Frontend check timed out. Check the frontend window for error messages.
 )
 
-:: 9. Check readiness status
 if !BACKEND_READY! equ 0 (
     echo.
     echo ======================================================================
@@ -186,7 +177,6 @@ if !FRONTEND_READY! equ 0 (
     exit /b 1
 )
 
-:: 10. Open browser
 echo.
 echo Opening http://localhost:5173 in your default browser...
 start "" "http://localhost:5173"

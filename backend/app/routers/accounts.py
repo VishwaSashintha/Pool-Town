@@ -143,7 +143,7 @@ def create_transfer(payload: AccountTransferCreate, db: Session = Depends(get_db
     db.add(transfer)
     db.flush()
 
-    # Post balanced transfer journal entry: DR Destination, CR Source
+
     entry = JournalService.post_entry(
         db,
         entry_date=payload.transfer_date,
@@ -161,16 +161,12 @@ def create_transfer(payload: AccountTransferCreate, db: Session = Depends(get_db
     return {"message": "Transfer posted successfully", "reference": reference}
 
 
-# ==========================================
-# CASH & BANK RECONCILIATION
-# ==========================================
-
 @router.get("/reconciliation/cash-expected")
 def get_expected_cash(
     as_of_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Calculates expected cash in hand balance from posted journal lines."""
+
     check_date = as_of_date or date.today()
     balance = JournalService.get_account_balance(db, "1001", as_of_date=check_date)
     return {
@@ -183,7 +179,7 @@ def get_expected_cash(
 
 @router.post("/reconciliation/cash-count", response_model=CashCountResponse, status_code=201)
 def record_cash_count(payload: CashCountCreate, db: Session = Depends(get_db)):
-    """Records a physical cash count, calculating discrepancy vs expected book balance."""
+
     cash_acct = db.query(FinancialAccount).filter(FinancialAccount.code == "1001").first()
     if not cash_acct:
         raise HTTPException(status_code=404, detail="Cash account 1001 not found")
@@ -337,10 +333,6 @@ def list_bank_reconciliations(
     return results
 
 
-# ==========================================
-# ACCOUNTING PERIODS
-# ==========================================
-
 @router.get("/periods", response_model=list[AccountingPeriodResponse])
 def list_periods(db: Session = Depends(get_db)):
     periods = db.query(AccountingPeriod).order_by(
@@ -390,16 +382,10 @@ def reopen_period(year: int, month: int, payload: PeriodReopenRequest, db: Sessi
     return period
 
 
-# ==========================================
-# OPENING BALANCES WORKFLOW
-# ==========================================
-
 @router.get("/opening-balances", response_model=OpeningBalanceSummaryResponse)
 def get_opening_balances(db: Session = Depends(get_db)):
-    """
-    Returns the current opening balance setup status, line details, and broken down summary.
-    If not yet posted, returns posted=False and zeroed breakdown.
-    """
+
+
     entry = (
         db.query(JournalEntry)
         .filter(
@@ -496,15 +482,8 @@ def get_opening_balances(db: Session = Depends(get_db)):
 
 @router.post("/opening-balances/setup", status_code=201)
 def post_opening_balances_setup(payload: OpeningBalanceSetupRequest, db: Session = Depends(get_db)):
-    """
-    Guided opening balance setup endpoint:
-    - Equal or custom owner capital contributions for Akash, Pasan, Vishwa (with destination account)
-    - Relatives' contributions with destination (Cash, Bank, Savings Cash, Savings Bank) and classification (GIFT -> 3020, LOAN -> 2015)
-    - Direct opening assets (1001, 1002, 1003, 1004, 1030, etc.)
-    - Direct opening liabilities (2010, 2015, 2030, etc.)
-    - Requires debits == credits
-    - Prevents duplicate posting
-    """
+
+
     existing = db.query(JournalEntry).filter(
         JournalEntry.source_type == "opening_balance",
         JournalEntry.status == JournalEntryStatus.POSTED,
@@ -542,7 +521,7 @@ def post_opening_balances_setup(payload: OpeningBalanceSetupRequest, db: Session
         descs.append(desc)
         credits[code] = (name, curr_amt + amount, descs)
 
-    # 1. Process Owner Capital Contributions
+
     owner_map = {"akash": "3001", "pasan": "3002", "vishwa": "3003"}
     for oc in payload.owner_contributions:
         if oc.amount_paise <= 0:
@@ -561,7 +540,7 @@ def post_opening_balances_setup(payload: OpeningBalanceSetupRequest, db: Session
         dest_name = "Cash in Hand" if dest == "1001" else "Main Bank Account"
         add_debit(dest, oc.amount_paise, f"Capital received from {oc.owner_name} into {dest_name}")
 
-    # 2. Process Relatives' Contributions
+
     for rc in payload.relative_contributions:
         if rc.amount_paise <= 0:
             continue
@@ -579,13 +558,13 @@ def post_opening_balances_setup(payload: OpeningBalanceSetupRequest, db: Session
         add_credit(credit_code, rc.amount_paise, f"Opening funding from {rc.contributor_name} ({fund_type})")
         add_debit(dest, rc.amount_paise, f"Family funding from {rc.contributor_name} deposited into {dest_name}")
 
-    # 3. Direct Assets
+
     for da in payload.direct_assets:
         if da.amount_paise <= 0:
             continue
         add_debit(da.account_code, da.amount_paise, da.notes or f"Opening balance: {da.name}")
 
-    # 4. Opening Liabilities
+
     for ol in payload.opening_liabilities:
         if ol.amount_paise <= 0:
             continue
@@ -684,10 +663,8 @@ def post_opening_balances_setup(payload: OpeningBalanceSetupRequest, db: Session
 
 @router.post("/opening-balances", status_code=201)
 def post_opening_balances(payload: OpeningBalanceCreate, db: Session = Depends(get_db)):
-    """
-    Post opening balances journal entry from raw account items.
-    Must balance: Sum(Debit Assets) == Sum(Credit Liabilities + Equity).
-    """
+
+
     existing = db.query(JournalEntry).filter(
         JournalEntry.source_type == "opening_balance",
         JournalEntry.status == JournalEntryStatus.POSTED,
@@ -745,9 +722,8 @@ def post_opening_balances(payload: OpeningBalanceCreate, db: Session = Depends(g
 
 @router.post("/opening-balances/reverse")
 def reverse_opening_balances(payload: OpeningBalanceReverseRequest, db: Session = Depends(get_db)):
-    """
-    Safely reverse the posted opening balance journal entry to allow fresh setup.
-    """
+
+
     entry = (
         db.query(JournalEntry)
         .filter(
@@ -769,7 +745,7 @@ def reverse_opening_balances(payload: OpeningBalanceReverseRequest, db: Session 
             created_by=payload.reversed_by or "Admin",
         )
 
-        # Remove linked initial capital OwnerTransactions
+
         linked_txs = (
             db.query(OwnerTransaction)
             .filter(
@@ -800,11 +776,6 @@ def reverse_opening_balances(payload: OpeningBalanceReverseRequest, db: Session 
         raise HTTPException(status_code=400, detail=str(e))
 
 
-
-# ==========================================
-# TRANSACTION HISTORY / GENERAL LEDGER
-# ==========================================
-
 @router.get("/transactions")
 def list_transactions(
     start_date: Optional[date] = Query(default=None),
@@ -816,9 +787,8 @@ def list_transactions(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """
-    Search and filter general ledger journal entries and debit/credit lines.
-    """
+
+
     query = db.query(JournalEntry)
 
     if start_date:
@@ -884,4 +854,3 @@ def list_transactions(
         "limit": limit,
         "items": results,
     }
-

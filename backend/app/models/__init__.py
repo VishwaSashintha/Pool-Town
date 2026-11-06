@@ -1,6 +1,3 @@
-"""
-Models package — import all models so Alembic can discover them.
-"""
 from app.models.base import Base, TimestampMixin
 from app.models.players import Player, PlayerAlias
 from app.models.sessions import PoolSession, PS4Session, SessionStatus

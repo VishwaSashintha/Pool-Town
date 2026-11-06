@@ -1,8 +1,3 @@
-/**
- * LoginPage — Modern split-screen authentication for Pool Town ERP.
- * Blue & white card layout with Pool Town branding, decorative geometry,
- * and high-contrast accessible inputs.
- */
 import React, { useState } from "react";
 import { Lock, User, Eye, EyeOff, AlertCircle, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -62,7 +57,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         fontFamily: "var(--font-family-base, 'Poppins', sans-serif)",
       }}
     >
-      {/* Subtle atmospheric ambient glow */}
+
       <div
         className="absolute inset-0 pointer-events-none opacity-40"
         style={{
@@ -71,23 +66,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         }}
       />
 
-      {/* Main Login Card (Split-screen 2-column) */}
       <div
         className="relative w-full max-w-[1080px] min-h-[540px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-700/50"
         style={{
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05)",
         }}
       >
-        {/* =========================================================================
-            LEFT PANEL: Welcome & Branding (~48% width on desktop)
-            ========================================================================= */}
+
         <div
           className="w-full md:w-[48%] relative flex flex-col justify-between p-8 sm:p-10 lg:p-12 text-white overflow-hidden"
           style={{
             background: "linear-gradient(150deg, #1D4ED8 0%, #1E40AF 45%, #0F172A 100%)",
           }}
         >
-          {/* Decorative circular shapes (depth & layering) */}
+
           <div
             className="absolute -bottom-24 -left-20 w-80 h-80 rounded-full pointer-events-none"
             style={{
@@ -107,7 +99,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             }}
           />
 
-          {/* Top Brand Tag */}
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="text-xl sm:text-2xl font-extrabold tracking-wider text-white">
@@ -119,9 +110,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </span>
           </div>
 
-          {/* Center: Official Logo container + Welcome Copy */}
           <div className="relative z-10 my-8 sm:my-10 space-y-5">
-            {/* Logo in light container for high legibility */}
+
             <div
               className="inline-flex items-center justify-center p-3 rounded-2xl bg-white shadow-xl transition-transform hover:scale-[1.02]"
               style={{
@@ -135,7 +125,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 alt="Pool Town Official Logo"
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  // Fallback in case of missing asset
+
                   (e.target as HTMLElement).style.display = "none";
                 }}
               />
@@ -154,19 +144,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Bottom security assurance */}
           <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-blue-200/80">
             <span>Enterprise Edition</span>
             <span>Local &amp; Secure</span>
           </div>
         </div>
 
-        {/* =========================================================================
-            RIGHT PANEL: Clean White Authentication Form (~52% width)
-            ========================================================================= */}
         <div className="w-full md:w-[52%] bg-white p-8 sm:p-12 lg:p-14 flex flex-col justify-center text-slate-800">
           <div className="max-w-md w-full mx-auto">
-            {/* Header */}
+
             <div className="mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                 Sign in
@@ -176,7 +162,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </p>
             </div>
 
-            {/* Error banner */}
             {error && (
               <div
                 className="mb-6 flex items-start gap-3 rounded-xl p-3.5 text-xs sm:text-sm animate-fadeIn"
@@ -192,9 +177,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </div>
             )}
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5" id="login-form">
-              {/* Username Field */}
+
               <div>
                 <label
                   htmlFor="login-username"
@@ -218,7 +202,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </div>
               </div>
 
-              {/* Password Field */}
               <div>
                 <label
                   htmlFor="login-password"
@@ -250,7 +233,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <div className="pt-2">
                 <button
                   id="login-submit"
@@ -289,7 +271,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </div>
             </form>
 
-            {/* Note / System info */}
             <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
               <span>Pool Town ERP</span>
               <span>All rights reserved</span>

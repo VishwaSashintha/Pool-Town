@@ -1,6 +1,3 @@
-"""
-Equipment purchases and damage charges router.
-"""
 from __future__ import annotations
 
 from datetime import date
@@ -20,8 +17,6 @@ from app.services.journal import JournalService, JournalLineInput
 
 router = APIRouter(prefix="/api/equipment", tags=["Equipment & Damage"])
 
-
-# ── Schemas ──────────────────────────────────────────────────────────
 
 class EquipmentPurchaseCreate(BaseModel):
     purchase_date: date
@@ -58,8 +53,6 @@ class DamageWaiveRequest(BaseModel):
     resolution_notes: str
     status: DamageStatus = DamageStatus.WAIVED
 
-
-# ── Equipment Purchases ──────────────────────────────────────────────
 
 @router.get("/purchases")
 def list_equipment_purchases(
@@ -119,7 +112,7 @@ def create_equipment_purchase(payload: EquipmentPurchaseCreate, db: Session = De
     db.add(purchase)
     db.flush()
 
-    # Post journal entry if paid: DR Equipment Expense, CR Cash/Bank
+
     if payload.payment_status == EquipmentPaymentStatus.PAID:
         acct_code = "1001"
         acct_name = "Cash in Hand"
@@ -147,8 +140,6 @@ def create_equipment_purchase(payload: EquipmentPurchaseCreate, db: Session = De
     return {"message": "Equipment purchase recorded", "reference": reference, "id": purchase.id}
 
 
-# ── Damage Charges ────────────────────────────────────────────────────
-
 @router.get("/damage-charges")
 def list_damage_charges(
     status: Optional[str] = Query(None),
@@ -168,7 +159,7 @@ def list_damage_charges(
     charges = q.order_by(desc(DamageCharge.damage_date), desc(DamageCharge.id)).limit(limit).all()
     results = []
     for c in charges:
-        # Reload collected amount from payments
+
         payments_total = db.query(
             func.coalesce(func.sum(DamagePayment.amount_paise), 0)
         ).filter(DamagePayment.damage_charge_id == c.id).scalar() or 0
@@ -232,7 +223,7 @@ def record_damage_payment(charge_id: int, payload: DamagePaymentCreate, db: Sess
     if charge.status in (DamageStatus.WAIVED, DamageStatus.WRITTEN_OFF):
         raise HTTPException(status_code=400, detail=f"Charge is already {charge.status.value}")
 
-    # Calculate current outstanding
+
     paid_so_far = db.query(
         func.coalesce(func.sum(DamagePayment.amount_paise), 0)
     ).filter(DamagePayment.damage_charge_id == charge_id).scalar() or 0
@@ -268,7 +259,7 @@ def record_damage_payment(charge_id: int, payload: DamagePaymentCreate, db: Sess
     db.add(payment)
     db.flush()
 
-    # Post journal: DR Cash/Bank, CR Damage Recovery Income
+
     entry = JournalService.post_entry(
         db,
         entry_date=payload.payment_date,
@@ -282,7 +273,7 @@ def record_damage_payment(charge_id: int, payload: DamagePaymentCreate, db: Sess
     )
     payment.journal_entry_id = entry.id
 
-    # Update charge status
+
     new_total = paid_so_far + payload.amount_paise
     charge.collected_paise = new_total
     if new_total >= charge.charge_amount_paise:

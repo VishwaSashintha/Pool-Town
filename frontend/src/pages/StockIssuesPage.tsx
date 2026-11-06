@@ -50,7 +50,6 @@ export const StockIssuesPage: React.FC = () => {
       ),
   });
 
-  // We need the count IDs to resolve - let's get them from stock-count endpoint
   const { data: stockCounts = [] } = useQuery<any[]>({
     queryKey: ["drinks-stock-counts"],
     queryFn: () => apiRequest<any[]>("/drinks/stock-count"),
@@ -76,7 +75,6 @@ export const StockIssuesPage: React.FC = () => {
   const totalLostValue = shortages.reduce((s, i) => s + i.estimated_value_paise, 0);
   const unresolvedCount = issues.filter((i) => !i.investigated).length;
 
-  // Map issue to its count record ID
   const getCountId = (issue: StockDiscrepancy): number | null => {
     const count = stockCounts.find(
       (c) => c.product_id === issue.product_id && c.count_date === issue.count_date
@@ -86,7 +84,7 @@ export const StockIssuesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">Stock Issues</h2>
@@ -108,7 +106,6 @@ export const StockIssuesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl border border-rose-500/20 bg-card/60 glass-panel">
           <div className="flex items-center gap-2 text-rose-400 text-xs font-medium mb-1">
@@ -138,7 +135,6 @@ export const StockIssuesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Issues Table */}
       <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden glass-panel">
         {isLoading ? (
           <div className="p-10 text-center text-sm text-muted-foreground">Loading stock issues...</div>
@@ -211,7 +207,7 @@ export const StockIssuesPage: React.FC = () => {
                           )}
                         </td>
                       </tr>
-                      {/* Resolve Row */}
+
                       {isResolving && (
                         <tr>
                           <td colSpan={8} className="px-4 py-3 bg-secondary/20">
@@ -255,7 +251,6 @@ export const StockIssuesPage: React.FC = () => {
         )}
       </div>
 
-      {/* Info box */}
       <div className="p-4 rounded-xl border border-border/40 bg-secondary/10 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">How stock issues are created</p>
         <p>A discrepancy appears here when the <strong>Daily Stock Count</strong> (in Soft Drinks Inventory) shows a different number than what the system expects based on purchases and sales.</p>

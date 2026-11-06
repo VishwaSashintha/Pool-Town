@@ -1,7 +1,3 @@
-"""
-Settings router — Business profile, formatting preferences, and receipt configurations.
-Stores persistent business configuration in the AppSetting table.
-"""
 from __future__ import annotations
 
 import json
@@ -75,7 +71,7 @@ class BusinessProfileUpdate(BaseModel):
 
 @router.get("/profile", response_model=BusinessProfileResponse)
 def get_business_profile(db: Session = Depends(get_db)):
-    """Fetch current business profile and preferences."""
+
     return BusinessProfileResponse(
         business_name=_get_val(db, "business_name", "Pool Town"),
         business_address=_get_val(db, "business_address", ""),
@@ -97,10 +93,8 @@ def update_business_profile(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
-    """
-    Update business profile and preferences.
-    Requires authentication.
-    """
+
+
     if payload.business_name is not None and payload.business_name.strip():
         _set_val(db, "business_name", payload.business_name.strip(), "Official Business Name", current_user)
     if payload.business_address is not None:

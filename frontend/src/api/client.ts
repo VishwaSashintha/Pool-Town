@@ -1,8 +1,3 @@
-/**
- * Authoritative API client for the Billiard Hall Management backend.
- * Uses typed endpoints and standard fetch.
- * Automatically injects the X-Auth-Token header from sessionStorage on every request.
- */
 import type {
   SystemInfo,
   Player,
@@ -106,7 +101,6 @@ const TOKEN_STORAGE_KEY = "bh_session_token";
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
 
-  // Automatically inject the auth token from sessionStorage
   const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -172,13 +166,10 @@ export async function downloadExport(endpoint: string, fallbackFilename: string)
   window.URL.revokeObjectURL(downloadUrl);
 }
 
-
 export const api = {
-  // System
   getHealth: () => request<{ status: string; app: string; version: string; server_time: string }>("/health"),
   getSystemInfo: () => request<SystemInfo>("/info"),
 
-  // Pricing calculations
   pricing: {
     calculatePool: (chargeable_minutes: number, discount_paise: number = 0) =>
       request<{
@@ -212,7 +203,6 @@ export const api = {
       }),
   },
 
-  // Players
   players: {
     list: (search?: string) => request<Player[]>(search ? `/players?search=${encodeURIComponent(search)}` : "/players"),
     get: (id: number) => request<Player>(`/players/${id}`),
@@ -237,7 +227,6 @@ export const api = {
       }),
   },
 
-  // Pool Sessions
   poolSessions: {
     list: (params?: { date?: string; status?: string }) => {
       const query = new URLSearchParams();
@@ -260,7 +249,6 @@ export const api = {
       }),
   },
 
-  // PS4 Sessions
   ps4Sessions: {
     list: (params?: { date?: string; status?: string }) => {
       const query = new URLSearchParams();
@@ -283,7 +271,6 @@ export const api = {
       }),
   },
 
-  // Payments
   payments: {
     record: (data: SessionPaymentCreate) =>
       request<SessionPayment>("/payments/session", {
@@ -301,7 +288,6 @@ export const api = {
     },
   },
 
-  // Drinks (Soft Drinks)
   drinks: {
     listProducts: (include_inactive?: boolean) =>
       request<any[]>(include_inactive ? "/drinks/products?include_inactive=true" : "/drinks/products"),
@@ -315,7 +301,6 @@ export const api = {
       }),
   },
 
-  // Inventory
   inventory: {
     listProducts: () => request<Product[]>("/inventory/products"),
     createProduct: (data: ProductCreateInput) =>
@@ -325,7 +310,6 @@ export const api = {
       }),
   },
 
-  // Expenses
   expenses: {
     list: () => request<Expense[]>("/expenses"),
     listCategories: () => request<ExpenseCategory[]>("/expenses/categories"),
@@ -343,7 +327,6 @@ export const api = {
       }),
   },
 
-  // Accounts & Ledger
   accounts: {
     list: () => request<FinancialAccount[]>("/accounts"),
     getTrialBalance: () => request<TrialBalanceRow[]>("/accounts/trial-balance"),
@@ -355,7 +338,6 @@ export const api = {
     listTransfers: (limit: number = 50) =>
       request<AccountTransfer[]>(`/accounts/transfers?limit=${limit}`),
 
-    // Cash & Bank Reconciliation
     getExpectedCash: (as_of_date?: string) =>
       request<{ account_code: string; account_name: string; as_of_date: string; expected_paise: number }>(
         as_of_date ? `/accounts/reconciliation/cash-expected?as_of_date=${as_of_date}` : "/accounts/reconciliation/cash-expected"
@@ -384,7 +366,6 @@ export const api = {
       return request<BankReconciliation[]>(`/accounts/reconciliation/bank-reconciliations?${q}`);
     },
 
-    // Accounting Periods
     listPeriods: () => request<AccountingPeriod[]>("/accounts/periods"),
     closePeriod: (year: number, month: number, closed_by: string = "Admin") =>
       request<AccountingPeriod>(`/accounts/periods/${year}/${month}/close`, {
@@ -397,7 +378,6 @@ export const api = {
         body: JSON.stringify({ reason, reopened_by }),
       }),
 
-    // Opening Balances
     getOpeningBalances: () =>
       request<{
         posted: boolean;
@@ -440,7 +420,6 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    // Transaction History / General Ledger
     listTransactions: (params?: { start_date?: string; end_date?: string; account_code?: string; source_type?: string; search?: string; limit?: number; offset?: number }) => {
       const q = new URLSearchParams();
       if (params?.start_date) q.set("start_date", params.start_date);
@@ -455,7 +434,6 @@ export const api = {
     },
   },
 
-  // Owners, Capital & Loans
   owners: {
     list: () => request<OwnerDetail[]>("/owners"),
     listTransactions: (owner_id?: number, limit: number = 50) => {
@@ -468,7 +446,6 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    // Loans
     listLoans: (status?: string) =>
       request<Loan[]>(status ? `/owners/loans?status=${status}` : "/owners/loans"),
     createLoan: (data: LoanCreate) =>
@@ -495,7 +472,6 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    // Collections
     listCollections: (params?: { collector_name?: string; owner_id?: number; status?: string; start_date?: string; end_date?: string; limit?: number }) => {
       const q = new URLSearchParams();
       if (params?.collector_name) q.set("collector_name", params.collector_name);
@@ -519,8 +495,6 @@ export const api = {
       }),
   },
 
-
-  // Authentication
   auth: {
     login: (username: string, password: string) =>
       request<{ token: string; username: string; message: string }>("/auth/login", {
@@ -547,7 +521,6 @@ export const api = {
       }),
   },
 
-  // Database Backup
   backup: {
     create: (note?: string) =>
       request<BackupSnapshot>("/backup/create", {
@@ -562,7 +535,6 @@ export const api = {
       }),
   },
 
-  // Equipment & Damage Charges
   equipment: {
     listPurchases: (category?: string, limit: number = 100) => {
       const q = category ? `category=${category}&limit=${limit}` : `limit=${limit}`;
@@ -597,7 +569,6 @@ export const api = {
       }),
   },
 
-  // Reports
   reports: {
     getDaily: (dateStr?: string) =>
       request<DailyReportData>(dateStr ? `/reports/daily?report_date=${dateStr}` : "/reports/daily"),
@@ -628,7 +599,6 @@ export const api = {
     },
   },
 
-  // Settings & Configuration
   settings: {
     getProfile: () => request<BusinessProfile>("/settings/profile"),
     updateProfile: (data: Partial<BusinessProfile>) =>
@@ -638,8 +608,6 @@ export const api = {
       }),
   },
 
-
-  // Administration
   admin: {
     resetBusinessData: (confirmPhrase: string) =>
       request<AdminResetResponse>("/admin/reset-business-data", {
@@ -648,7 +616,6 @@ export const api = {
       }),
   },
 };
-
 
 export const apiClient = api;
 export default api;

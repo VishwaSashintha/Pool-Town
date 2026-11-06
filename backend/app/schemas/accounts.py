@@ -118,7 +118,7 @@ class PeriodReopenRequest(BaseModel):
 class OpeningBalanceItem(BaseModel):
     account_code: str
     amount_paise: int = Field(gt=0)
-    is_debit: bool  # True = Debit (Asset), False = Credit (Liability/Equity)
+    is_debit: bool
 
 
 class OpeningBalanceCreate(BaseModel):
@@ -130,28 +130,28 @@ class OpeningBalanceCreate(BaseModel):
 class OwnerCapitalContributionInput(BaseModel):
     owner_name: str
     amount_paise: int = Field(ge=0)
-    destination_code: str = "1001"  # "1001" (Cash in Hand) or "1002" (Main Bank Account)
+    destination_code: str = "1001"
     notes: Optional[str] = None
 
 
 class RelativeContributionInput(BaseModel):
     contributor_name: str
     amount_paise: int = Field(gt=0)
-    destination_code: str = "1004"  # "1001", "1002", "1003", "1004"
-    classification: str = "GIFT"    # "GIFT" (Equity 3020), "LOAN" (Liability 2015), "PENDING"
+    destination_code: str = "1004"
+    classification: str = "GIFT"
     purpose: Optional[str] = "Opening Day Family Contribution"
     notes: Optional[str] = None
 
 
 class OpeningLiabilityInput(BaseModel):
-    account_code: str = "2010"     # "2010", "2015", "2030", "2001"
+    account_code: str = "2010"
     lender_or_creditor: str
     amount_paise: int = Field(gt=0)
     notes: Optional[str] = None
 
 
 class OpeningAssetInput(BaseModel):
-    account_code: str             # "1001", "1002", "1003", "1004", "1030", "1020"
+    account_code: str
     name: str
     amount_paise: int = Field(gt=0)
     notes: Optional[str] = None
@@ -181,9 +181,6 @@ class OpeningBalanceSummaryResponse(BaseModel):
         return getattr(self, item)
 
 
-
 class OpeningBalanceReverseRequest(BaseModel):
     reason: str = Field(min_length=5, max_length=500)
     reversed_by: Optional[str] = "Admin"
-
-

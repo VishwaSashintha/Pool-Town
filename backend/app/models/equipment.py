@@ -1,8 +1,3 @@
-"""
-Equipment purchases and damage charge models.
-Equipment purchases: cue sticks, tables, PS4 controllers, repairs.
-Damage charges: player-caused damage with collection tracking.
-"""
 from __future__ import annotations
 
 import enum
@@ -34,10 +29,8 @@ class EquipmentPaymentStatus(str, enum.Enum):
 
 
 class EquipmentPurchase(Base, TimestampMixin):
-    """
-    Equipment and repair purchase records.
-    Separate from damage recoveries — these are costs to the business.
-    """
+
+
     __tablename__ = "equipment_purchases"
     __table_args__ = (
         CheckConstraint("amount_paise > 0", name="ck_equip_amount_positive"),
@@ -74,10 +67,8 @@ class DamageStatus(str, enum.Enum):
 
 
 class DamageCharge(Base, TimestampMixin):
-    """
-    Damage charge raised against a player.
-    Payment status tracked separately from equipment purchases.
-    """
+
+
     __tablename__ = "damage_charges"
     __table_args__ = (
         CheckConstraint("charge_amount_paise > 0", name="ck_damage_charge_positive"),
@@ -109,7 +100,7 @@ class DamageCharge(Base, TimestampMixin):
 
 
 class DamagePayment(Base, TimestampMixin):
-    """A payment collected towards a damage charge."""
+
     __tablename__ = "damage_payments"
     __table_args__ = (
         CheckConstraint("amount_paise > 0", name="ck_damage_pay_positive"),

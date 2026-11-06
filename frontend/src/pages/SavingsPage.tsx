@@ -1,20 +1,3 @@
-/**
- * SavingsPage — Business Savings Management.
- * 
- * Provides 4 clear actions:
- * 1. Add Money to Savings (From Business Cash / Bank -> Savings Cash / Bank)
- * 2. Move Savings Cash to Bank (Savings Cash -> Savings Bank)
- * 3. Move Savings Bank to Cash (Savings Bank -> Savings Cash)
- * 4. View Savings History (Audit trail of all savings movements)
- * 
- * Also provides Monthly Savings Allocation:
- * - Allows user to split monthly savings into cash portion and bank portion
- * - Automatically calculates the total
- * - Validates amounts against available balances
- * - Records transfers exactly once upon explicit user action
- * - Invariant: Internal transfers between Savings Cash and Savings Bank never alter Total Savings.
- * - All internal account codes (1001, 1002, 1003, 1004) are hidden from the user.
- */
 import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -42,17 +25,14 @@ export const SavingsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const historyRef = useRef<HTMLDivElement>(null);
 
-  // Active modal
   const [activeModal, setActiveModal] = useState<TransferModalType>(null);
 
-  // Standard Transfer Form State
   const [fromAccountId, setFromAccountId] = useState<number | "">("");
   const [toAccountId, setToAccountId] = useState<number | "">("");
   const [amountRs, setAmountRs] = useState("");
   const [transferDate, setTransferDate] = useState(new Date().toISOString().split("T")[0]);
   const [description, setDescription] = useState("");
 
-  // Monthly Savings Split Form State
   const [allocCashRs, setAllocCashRs] = useState("");
   const [allocBankRs, setAllocBankRs] = useState("");
   const [allocDate, setAllocDate] = useState(new Date().toISOString().split("T")[0]);
@@ -88,7 +68,6 @@ export const SavingsPage: React.FC = () => {
     queryFn: () => api.reports.getMonthly(),
   });
 
-  // Accounts
   const cashInHandAccount = accounts.find((a) => a.code === "1001");
   const businessBankAccount = accounts.find((a) => a.code === "1002");
   const bankSavingsAccount = accounts.find((a) => a.code === "1003");
@@ -102,7 +81,6 @@ export const SavingsPage: React.FC = () => {
 
   const currentMonthAllocated = monthlyReport?.profit_allocation?.savings_paise || 0;
 
-  // Account label mapper (stripping all account codes)
   const getAccountLabel = (code: string, fallback: string) => {
     if (code === "1001") return "Cash in Hand";
     if (code === "1002") return "Main Bank Account";
@@ -143,7 +121,6 @@ export const SavingsPage: React.FC = () => {
     setAllocNotes("");
   };
 
-  // Open predefined modal actions
   const openAddSavingsModal = () => {
     setErrorMsg("");
     setAmountRs("");
@@ -186,7 +163,7 @@ export const SavingsPage: React.FC = () => {
     setErrorMsg("");
     setAllocDate(new Date().toISOString().split("T")[0]);
     setAllocNotes(`Monthly profit savings allocation - ${monthlyReport?.month_name || "Current Month"}`);
-    // Default split: if savings share is available, set bank portion as default
+
     if (currentMonthAllocated > 0) {
       setAllocCashRs("0");
       setAllocBankRs((currentMonthAllocated / 100).toString());
@@ -201,7 +178,6 @@ export const SavingsPage: React.FC = () => {
     historyRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Handle Standard Transfer Submission
   const handleStandardTransferSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amountPaise = rupeesToPaise(parseFloat(amountRs) || 0);
@@ -241,7 +217,6 @@ export const SavingsPage: React.FC = () => {
     });
   };
 
-  // Handle Monthly Split Allocation Submit
   const handleMonthlyAllocationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cashPaise = rupeesToPaise(parseFloat(allocCashRs) || 0);
@@ -273,7 +248,7 @@ export const SavingsPage: React.FC = () => {
     }
 
     try {
-      // 1. If cash portion > 0: Transfer from Cash in Hand (1001) -> Savings Cash (1004)
+
       if (cashPaise > 0) {
         await api.accounts.createTransfer({
           transfer_date: allocDate,
@@ -286,7 +261,6 @@ export const SavingsPage: React.FC = () => {
         });
       }
 
-      // 2. If bank portion > 0: Transfer from Main Bank (1002) -> Savings Bank (1003)
       if (bankPaise > 0) {
         await api.accounts.createTransfer({
           transfer_date: allocDate,
@@ -311,7 +285,6 @@ export const SavingsPage: React.FC = () => {
     }
   };
 
-  // Savings transfers involving account 1003 or 1004
   const savingsTransfers = transfers.filter(
     (t) =>
       t.from_account_code === "1003" ||
@@ -320,14 +293,13 @@ export const SavingsPage: React.FC = () => {
       t.to_account_code === "1004"
   );
 
-  // Dynamic calculation for monthly modal
   const currentAllocCashPaise = rupeesToPaise(parseFloat(allocCashRs) || 0);
   const currentAllocBankPaise = rupeesToPaise(parseFloat(allocBankRs) || 0);
   const currentAllocTotalPaise = currentAllocCashPaise + currentAllocBankPaise;
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Page Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -339,7 +311,6 @@ export const SavingsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* 4 Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={openAddSavingsModal}
@@ -397,9 +368,8 @@ export const SavingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Primary Savings Figures Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Total Business Savings */}
+
         <div
           className="rounded-xl p-5 space-y-2 border-2"
           style={{ backgroundColor: "#1E293B", borderColor: "#6366F1" }}
@@ -417,7 +387,6 @@ export const SavingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Savings Held in Cash */}
         <div
           className="rounded-xl p-5 space-y-2"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -430,7 +399,6 @@ export const SavingsPage: React.FC = () => {
           <p className="text-xs text-slate-400">Physical savings cash in safety locker</p>
         </div>
 
-        {/* 3. Savings Held in Bank */}
         <div
           className="rounded-xl p-5 space-y-2"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -443,7 +411,6 @@ export const SavingsPage: React.FC = () => {
           <p className="text-xs text-slate-400">Dedicated savings bank reserve</p>
         </div>
 
-        {/* 4. Monthly 40% Allocation Card */}
         <div
           className="rounded-xl p-5 space-y-2"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -463,7 +430,6 @@ export const SavingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Explanatory banner for non-accountants */}
       <div
         className="rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-slate-300"
         style={{ backgroundColor: "#141E33", border: "1px solid #1E293B" }}
@@ -480,7 +446,6 @@ export const SavingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Savings Ledger History */}
       <div
         ref={historyRef}
         className="rounded-xl overflow-hidden shadow-sm"
@@ -536,9 +501,6 @@ export const SavingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: ADD MONEY TO SAVINGS                                              */}
-      {/* ========================================================================= */}
       {activeModal === "add_savings" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -676,9 +638,6 @@ export const SavingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 2: MOVE SAVINGS CASH TO BANK                                         */}
-      {/* ========================================================================= */}
       {activeModal === "cash_to_bank" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -793,9 +752,6 @@ export const SavingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 3: MOVE SAVINGS BANK TO CASH                                         */}
-      {/* ========================================================================= */}
       {activeModal === "bank_to_cash" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -910,9 +866,6 @@ export const SavingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 4: ALLOCATE MONTHLY SAVINGS (SPLIT CASH / BANK)                      */}
-      {/* ========================================================================= */}
       {activeModal === "monthly_allocation" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -958,7 +911,6 @@ export const SavingsPage: React.FC = () => {
                 />
               </div>
 
-              {/* Cash Portion Input */}
               <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
@@ -983,7 +935,6 @@ export const SavingsPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Bank Portion Input */}
               <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-sky-400 flex items-center gap-1.5">
@@ -1008,7 +959,6 @@ export const SavingsPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Automatically Calculated Total */}
               <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-700/50 flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-indigo-300 block">Total Being Saved</span>

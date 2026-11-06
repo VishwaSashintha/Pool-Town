@@ -36,13 +36,11 @@ def list_outstanding_sessions(
     session_type: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """
-    Returns all unpaid or partially paid sessions (Pool and PS4)
-    with remaining outstanding receivable balances and player info.
-    """
+
+
     results = []
 
-    # 1. Pool sessions
+
     if not session_type or session_type == "pool":
         p_query = db.query(PoolSession).filter(
             PoolSession.status != SessionStatus.PAID,
@@ -75,7 +73,7 @@ def list_outstanding_sessions(
                     "status": s.status.value,
                 })
 
-    # 2. PS4 sessions
+
     if not session_type or session_type == "ps4":
         ps_query = db.query(PS4Session).filter(
             PS4Session.status != SessionStatus.PAID,
@@ -114,7 +112,7 @@ def list_outstanding_sessions(
 
 @router.post("/session", response_model=SessionPaymentResponse, status_code=201)
 def record_session_payment(payload: SessionPaymentCreate, db: Session = Depends(get_db)):
-    # 1. Fetch target session
+
     if payload.session_type == "pool":
         session = db.query(PoolSession).filter(PoolSession.id == payload.session_id).first()
         ar_code = "1010"
@@ -133,7 +131,7 @@ def record_session_payment(payload: SessionPaymentCreate, db: Session = Depends(
             detail="Cannot record payment for a cancelled/voided session.",
         )
 
-    # 2. Check outstanding balance
+
     current_paid = db.query(
         func.coalesce(func.sum(SessionPayment.amount_paise), 0)
     ).filter(
@@ -149,12 +147,12 @@ def record_session_payment(payload: SessionPaymentCreate, db: Session = Depends(
             detail=f"Payment amount ({payload.amount_paise} paise) exceeds outstanding balance ({outstanding} paise). Overpayment is prevented by default.",
         )
 
-    # 3. Create reference
+
     date_str = payload.collection_date.strftime("%Y%m%d")
     count = db.query(SessionPayment).filter(SessionPayment.reference.like(f"PAY-{date_str}-%")).count()
     reference = f"PAY-{date_str}-{count + 1:04d}"
 
-    # 4. Determine cash/bank account
+
     acct_code = "1001"
     acct_name = "Cash in Hand"
     if payload.payment_method == "bank_transfer":
@@ -167,7 +165,7 @@ def record_session_payment(payload: SessionPaymentCreate, db: Session = Depends(
             acct_code = fa.code
             acct_name = fa.name
 
-    # 5. Insert payment record
+
     payment = SessionPayment(
         reference=reference,
         session_type=payload.session_type,
@@ -182,7 +180,7 @@ def record_session_payment(payload: SessionPaymentCreate, db: Session = Depends(
     db.add(payment)
     db.flush()
 
-    # 6. Post double-entry journal: DR Cash/Bank, CR AR
+
     entry = JournalService.post_entry(
         db,
         entry_date=payload.collection_date,
@@ -196,7 +194,7 @@ def record_session_payment(payload: SessionPaymentCreate, db: Session = Depends(
     )
     payment.journal_entry_id = entry.id
 
-    # 7. Update session status
+
     new_total_paid = current_paid + payload.amount_paise
     if new_total_paid >= session.final_charge_paise:
         session.status = SessionStatus.PAID

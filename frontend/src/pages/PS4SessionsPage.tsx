@@ -17,7 +17,6 @@ import { MoneyDisplay } from "@/components/common/MoneyDisplay";
 import { formatLKR, rupeesToPaise, paiseToRupees } from "@/lib/money";
 import type { PS4Session } from "@/types";
 
-// Only whole-hour presets as requested
 const PS4_DURATIONS = [
   { label: "1 hour", minutes: 60 },
   { label: "2 hours", minutes: 120 },
@@ -55,7 +54,6 @@ export const PS4SessionsPage: React.FC = () => {
   const [paymentSession, setPaymentSession] = useState<PS4Session | null>(null);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
-  // Form states
   const [formDate, setFormDate] = useState<string>(selectedDate);
   const [playerCount, setPlayerCount] = useState<1 | 2>(1);
   const [player1Name, setPlayer1Name] = useState<string>("");
@@ -68,13 +66,11 @@ export const PS4SessionsPage: React.FC = () => {
   const [notes, setNotes] = useState<string>("");
   const [formError, setFormError] = useState<string>("");
 
-  // Payment collection states
   const [collectCashRupees, setCollectCashRupees] = useState<number>(0);
   const [collectBankRupees, setCollectBankRupees] = useState<number>(0);
   const [collectDate, setCollectDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [payError, setPayError] = useState<string>("");
 
-  // Void session states
   const [voidSession, setVoidSession] = useState<PS4Session | null>(null);
   const [voidAdminUser, setVoidAdminUser] = useState<string>("");
   const [voidAdminPass, setVoidAdminPass] = useState<string>("");
@@ -104,7 +100,6 @@ export const PS4SessionsPage: React.FC = () => {
     queryFn: () => api.players.list(),
   });
 
-  // Calculate standard PS4 rate
   const hourlyRatePaise = playerCount === 1 ? 40000 : 50000;
   const calculatedStandardPaise = Math.round((minutes / 60) * hourlyRatePaise);
   const standardChargePaise =
@@ -118,7 +113,6 @@ export const PS4SessionsPage: React.FC = () => {
   const totalPaidRupees = cashPaidRupees + bankPaidRupees;
   const stillToPayRupees = Math.max(0, finalChargeRupees - totalPaidRupees);
 
-  // Auto-fill cash when price or player count changes
   useEffect(() => {
     if (isNewModalOpen) {
       setCashPaidRupees(paiseToRupees(finalChargePaise));
@@ -239,7 +233,7 @@ export const PS4SessionsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">PS4 Gaming</h2>
@@ -259,7 +253,6 @@ export const PS4SessionsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl border border-border/70 bg-card/40 glass-panel">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -302,7 +295,6 @@ export const PS4SessionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Sessions Table */}
       <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden glass-panel">
         {isLoading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">Loading PS4 sessions...</div>
@@ -414,7 +406,6 @@ export const PS4SessionsPage: React.FC = () => {
         )}
       </div>
 
-      {/* ── New PS4 Session Modal ───────────────────────────────────────────────── */}
       {isNewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-lg rounded-2xl border border-blue-500/30 bg-card p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
@@ -444,7 +435,7 @@ export const PS4SessionsPage: React.FC = () => {
             )}
 
             <div className="space-y-4 text-sm">
-              {/* Date & Players */}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -491,7 +482,6 @@ export const PS4SessionsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Player Names */}
               <div className={`grid ${playerCount === 2 ? "grid-cols-2" : "grid-cols-1"} gap-3`}>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -528,7 +518,6 @@ export const PS4SessionsPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Duration — whole hours only */}
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Time Played
@@ -560,7 +549,6 @@ export const PS4SessionsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Price summary */}
               <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/80 space-y-1.5 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Time played:</span>
@@ -576,7 +564,6 @@ export const PS4SessionsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-2">
                   Payment received now
@@ -615,7 +602,6 @@ export const PS4SessionsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Notes (Optional)
@@ -629,7 +615,6 @@ export const PS4SessionsPage: React.FC = () => {
                 />
               </div>
 
-              {/* Advanced: manual price override */}
               <div>
                 <button
                   type="button"
@@ -694,7 +679,6 @@ export const PS4SessionsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Collect Payment Modal */}
       {paymentSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-blue-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -807,7 +791,6 @@ export const PS4SessionsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Void Session Modal ────────────────────────────────────────────────── */}
       {voidSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -936,4 +919,3 @@ export const PS4SessionsPage: React.FC = () => {
     </div>
   );
 };
-

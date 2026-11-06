@@ -1,13 +1,3 @@
-/**
- * MonthEndPage — Simplified 3-step guided month-end closing workflow.
- *
- * Step 1: Complete a plain-language verification checklist (7 items).
- * Step 2: Lock the current month with a clear "what this means" confirmation.
- * Step 3: View past closed months with reopen controls for Admin.
- *
- * No accounting lecture paragraphs. No jargon.
- * All backend API calls and data models are unchanged.
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -39,7 +29,6 @@ export const MonthEndPage: React.FC = () => {
 
   const monthLabel = `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
 
-  // Modal states
   const [periodToClose, setPeriodToClose] = useState<{ year: number; month: number } | null>(null);
   const [periodToReopen, setPeriodToReopen] = useState<{ year: number; month: number } | null>(null);
   const [closedByName, setClosedByName] = useState("Admin");
@@ -49,7 +38,6 @@ export const MonthEndPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Checklist state — 7 practical plain-language tasks
   const [checklist, setChecklist] = useState({
     cashReconciled: false,
     bankReconciled: false,
@@ -130,7 +118,6 @@ export const MonthEndPage: React.FC = () => {
     });
   };
 
-  // Checklist item definitions — plain language, no jargon
   const checklistItems: { key: keyof typeof checklist; label: string; detail: string }[] = [
     {
       key: "cashReconciled",
@@ -171,7 +158,7 @@ export const MonthEndPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Page Header */}
+
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
           <CalendarCheck className="w-6 h-6 text-emerald-400" />
@@ -198,14 +185,11 @@ export const MonthEndPage: React.FC = () => {
         </div>
       )}
 
-      {/* ======================================== */}
-      {/* STEP 1 — Verification Checklist           */}
-      {/* ======================================== */}
       <div
         className="rounded-xl overflow-hidden shadow-sm"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
       >
-        {/* Step header */}
+
         <div
           className="px-5 py-4 border-b border-slate-700/60 flex items-center justify-between"
           style={{ backgroundColor: "#141E33" }}
@@ -237,7 +221,6 @@ export const MonthEndPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Checklist items */}
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
           {checklistItems.map((item, i) => {
             const isChecked = checklist[item.key];
@@ -275,7 +258,6 @@ export const MonthEndPage: React.FC = () => {
           })}
         </div>
 
-        {/* Progress bar */}
         <div className="px-5 pb-5">
           <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
             <div
@@ -289,9 +271,6 @@ export const MonthEndPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ======================================== */}
-      {/* STEP 2 — Lock the Month                  */}
-      {/* ======================================== */}
       <div
         className={`rounded-xl p-5 shadow-sm transition-all ${
           allChecked ? "opacity-100" : "opacity-60"
@@ -339,9 +318,6 @@ export const MonthEndPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ======================================== */}
-      {/* STEP 3 — Past Closed Months              */}
-      {/* ======================================== */}
       <div
         className="rounded-xl overflow-hidden shadow-sm"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -442,9 +418,6 @@ export const MonthEndPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ======================================== */}
-      {/* LOCK PERIOD CONFIRMATION MODAL            */}
-      {/* ======================================== */}
       {periodToClose && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -512,9 +485,6 @@ export const MonthEndPage: React.FC = () => {
         </div>
       )}
 
-      {/* ======================================== */}
-      {/* REOPEN PERIOD MODAL                       */}
-      {/* ======================================== */}
       {periodToReopen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div

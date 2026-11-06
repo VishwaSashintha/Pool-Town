@@ -45,4 +45,3 @@ class PlayerMergeResponse(BaseModel):
     message: str
     primary_player: PlayerResponse
     sessions_moved: int
-

@@ -58,17 +58,15 @@ def _set_setting(db: Session, key: str, value: int, description: str, updated_by
 
 @router.get("/rates", response_model=PricingRatesResponse)
 def get_rates(db: Session = Depends(get_db)):
-    """Fetch current active pricing rates for Pool and PS4."""
+
     rates = get_pricing_rates(db)
     return PricingRatesResponse(**rates)
 
 
 @router.put("/rates", response_model=PricingRatesResponse)
 def update_rates(payload: PricingRatesUpdate, db: Session = Depends(get_db)):
-    """
-    Update Pool and PS4 rates. Requires admin credentials.
-    Future sessions will use the updated rates; historical records remain untouched.
-    """
+
+
     _verify_admin_credentials(db, payload.admin_username, payload.admin_password)
 
     changes = []
@@ -117,7 +115,7 @@ def calculate_pool(req: PoolPricingRequest, db: Session = Depends(get_db)):
         )
         final_paise = apply_discount(standard_paise, req.discount_paise)
 
-        # Build readable calculation breakdown
+
         if req.chargeable_minutes <= 60:
             breakdown = f"Base rate: Rs. {base_rs} for up to 60 mins"
         else:

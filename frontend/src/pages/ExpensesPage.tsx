@@ -24,7 +24,6 @@ export const ExpensesPage: React.FC = () => {
     }
   };
 
-  // Add expense form states
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
   const [categoryId, setCategoryId] = useState<number>(0);
   const [description, setDescription] = useState("");
@@ -32,7 +31,6 @@ export const ExpensesPage: React.FC = () => {
   const [payee, setPayee] = useState("");
   const [error, setError] = useState("");
 
-  // Pay bill form states
   const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
   const [payMethod, setPayMethod] = useState<"cash" | "bank_transfer" | "savings">("cash");
   const [payAmountRupees, setPayAmountRupees] = useState<number>(0);
@@ -159,7 +157,6 @@ export const ExpensesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl border border-border/70 bg-card/40 glass-panel">
           <p className="text-xs text-muted-foreground mb-1">Total Bills Posted</p>
@@ -175,7 +172,6 @@ export const ExpensesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Expenses Table */}
       <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden glass-panel">
         {isLoading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">Loading expenses...</div>
@@ -242,7 +238,6 @@ export const ExpensesPage: React.FC = () => {
         )}
       </div>
 
-      {/* Add Expense Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -363,7 +358,6 @@ export const ExpensesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Pay Bill Modal */}
       {payBillExpenseId && payBillExpense && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-blue-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -385,7 +379,6 @@ export const ExpensesPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Outstanding summary */}
             <div className="p-3 rounded-lg bg-secondary/30 border border-border/50 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Bill Total:</span>

@@ -1,12 +1,3 @@
-"""
-Tests for JournalService and core accounting invariants.
-Enforces:
-1. Every journal entry must balance (Sum DR == Sum CR).
-2. Closed periods reject new postings.
-3. Posted entries are immutable and only reversible.
-4. Correct normal-balance calculations for Assets, Liabilities, Equity, Revenue, and Expenses.
-5. Trial balance total debits equal total credits.
-"""
 from datetime import date
 import pytest
 
@@ -63,7 +54,7 @@ def test_reject_unbalanced_entry(db):
                     account_code="4001",
                     account_name="Pool Table Revenue",
                     is_debit=False,
-                    amount_paise=40000,  # 10000 paise out of balance
+                    amount_paise=40000,
                 ),
             ],
         )
@@ -96,7 +87,7 @@ def test_reject_fewer_than_two_lines(db):
 
 
 def test_closed_period_prevents_posting(db):
-    # Create and close period for January 2026
+
     period = JournalService.get_or_create_period(db, date(2026, 1, 1))
     period.is_closed = True
     db.flush()
@@ -126,7 +117,7 @@ def test_journal_entry_reversal(db):
     )
     assert original.status == JournalEntryStatus.POSTED
 
-    # Reverse it
+
     reversal = JournalService.reverse_entry(
         db,
         original.id,
@@ -139,12 +130,12 @@ def test_journal_entry_reversal(db):
     assert reversal.reverses_entry_id == original.id
     assert original.status == JournalEntryStatus.REVERSED
 
-    # Check reversed lines: AR should now be Credit, Revenue should be Debit
-    rev_lines = {l.account_code: (l.is_debit, l.amount_paise) for l in reversal.lines}
-    assert rev_lines["1010"] == (False, 80000)  # CR AR
-    assert rev_lines["4001"] == (True, 80000)   # DR Revenue
 
-    # Cannot reverse twice
+    rev_lines = {l.account_code: (l.is_debit, l.amount_paise) for l in reversal.lines}
+    assert rev_lines["1010"] == (False, 80000)
+    assert rev_lines["4001"] == (True, 80000)
+
+
     with pytest.raises(AccountingError):
         JournalService.reverse_entry(
             db,
@@ -157,7 +148,7 @@ def test_journal_entry_reversal(db):
 def test_account_balances_and_trial_balance(db):
     entry_date = date(2026, 3, 1)
 
-    # 1. Partner Vishwa introduces Rs. 100,000 capital (Cash DR 100,000, Vishwa Capital CR 100,000)
+
     JournalService.post_entry(
         db,
         entry_date=entry_date,
@@ -168,7 +159,7 @@ def test_account_balances_and_trial_balance(db):
         ],
     )
 
-    # 2. Rent paid Rs. 25,000 cash (Rent DR 25,000, Cash CR 25,000)
+
     JournalService.post_entry(
         db,
         entry_date=entry_date,
@@ -179,7 +170,7 @@ def test_account_balances_and_trial_balance(db):
         ],
     )
 
-    # 3. Pool session revenue cash Rs. 5,000 (Cash DR 5,000, Revenue CR 5,000)
+
     JournalService.post_entry(
         db,
         entry_date=entry_date,
@@ -190,27 +181,26 @@ def test_account_balances_and_trial_balance(db):
         ],
     )
 
-    # Balances:
-    # Cash (1001): 10,000,000 - 2,500,000 + 500,000 = 8,000,000 paise (Rs. 80,000)
+
     cash_bal = JournalService.get_account_balance(db, "1001")
     assert cash_bal == 8000000
 
-    # Rent (6003): 2,500,000 paise (Rs. 25,000)
+
     rent_bal = JournalService.get_account_balance(db, "6003")
     assert rent_bal == 2500000
 
-    # Revenue (4001): 500,000 paise (Rs. 5,000)
+
     rev_bal = JournalService.get_account_balance(db, "4001")
     assert rev_bal == 500000
 
-    # Capital (3003): 10,000,000 paise (Rs. 100,000)
+
     cap_bal = JournalService.get_account_balance(db, "3003")
     assert cap_bal == 10000000
 
-    # Trial Balance: Total Debits must equal Total Credits
+
     tb = JournalService.get_trial_balance(db)
     total_debits = sum(row["total_debit_paise"] for row in tb)
     total_credits = sum(row["total_credit_paise"] for row in tb)
 
     assert total_debits == total_credits
-    assert total_debits == 13000000  # 10M + 2.5M + 0.5M
+    assert total_debits == 13000000

@@ -1,8 +1,3 @@
-"""
-Initial seed data for Chart of Accounts, Expense Categories, Owners, and App Settings.
-IMPORTANT: Never seeds fabricated financial transactions or fake business operations.
-Only seeds structural metadata needed for day 1 operation.
-"""
 from __future__ import annotations
 
 import json
@@ -14,7 +9,7 @@ from app.models.audit import AppSetting
 
 
 CHART_OF_ACCOUNTS = [
-    # Assets (1xxx)
+
     ("1001", "Cash in Hand", AccountType.CASH, "Physical cash on premises", 1),
     ("1002", "Main Bank Account", AccountType.BANK, "Primary operational checking/current account", 2),
     ("1003", "Savings Account", AccountType.SAVINGS, "Business savings reserve account held in bank", 3),
@@ -25,14 +20,14 @@ CHART_OF_ACCOUNTS = [
     ("1030", "Fixed Assets", AccountType.OTHER, "Pool tables, PS4 consoles, furniture, AC, etc.", 8),
     ("1031", "Accumulated Depreciation", AccountType.OTHER, "Contra asset for accumulated depreciation", 9),
 
-    # Liabilities (2xxx)
+
     ("2001", "Accounts Payable — Suppliers", AccountType.OTHER, "Unpaid supplier bills for inventory", 10),
     ("2010", "Loan Payable", AccountType.OTHER, "External commercial or private business loans", 11),
     ("2015", "Family & Outside Loans Payable", AccountType.OTHER, "Repayable loans received from relatives or outside supporters", 12),
     ("2020", "Customer Advances", AccountType.OTHER, "Customer deposits / prepaid balances", 13),
     ("2030", "Owner Loans Payable", AccountType.OTHER, "Funds loaned by owners to the business", 14),
 
-    # Equity (3xxx)
+
     ("3001", "Owner Capital — Akash", AccountType.OTHER, "Akash's contributed capital balance", 20),
     ("3002", "Owner Capital — Pasan", AccountType.OTHER, "Pasan's contributed capital balance", 21),
     ("3003", "Owner Capital — Vishwa", AccountType.OTHER, "Vishwa's contributed capital balance", 22),
@@ -43,16 +38,16 @@ CHART_OF_ACCOUNTS = [
     ("3014", "Profit Allocation — Vishwa", AccountType.OTHER, "20% profit allocated to Vishwa", 27),
     ("3020", "External & Family Contributions", AccountType.OTHER, "Gifts or equity contributions from relatives or external supporters", 28),
 
-    # Revenue (4xxx)
+
     ("4001", "Pool Table Revenue", AccountType.OTHER, "Table rental income from pool sessions", 30),
     ("4002", "PS4 Revenue", AccountType.OTHER, "Gaming station rental income from PS4 sessions", 31),
     ("4003", "Product Sales Revenue", AccountType.OTHER, "Drinks and snack sales income", 32),
     ("4004", "Other Income", AccountType.OTHER, "Miscellaneous operating income", 33),
 
-    # Cost of Sales (5xxx)
+
     ("5001", "Cost of Goods Sold — Drinks", AccountType.OTHER, "Weighted-average cost of sold inventory", 40),
 
-    # Expenses (6xxx)
+
     ("6001", "Electricity", AccountType.OTHER, "CEB electricity bill payments", 50),
     ("6002", "Water", AccountType.OTHER, "Water utility payments", 51),
     ("6003", "Rent", AccountType.OTHER, "Premises lease/rental payments", 52),
@@ -67,7 +62,7 @@ CHART_OF_ACCOUNTS = [
     ("6012", "Wi-Fi & Internet", AccountType.OTHER, "Monthly Wi-Fi and internet connection charges", 61),
     ("6020", "Interest Expense", AccountType.OTHER, "Interest paid on business or external loans", 62),
 
-    # Distributions (7xxx)
+
     ("7001", "Owner Distribution — Akash", AccountType.OTHER, "Profit drawings/distributions to Akash", 70),
     ("7002", "Owner Distribution — Pasan", AccountType.OTHER, "Profit drawings/distributions to Pasan", 71),
     ("7003", "Owner Distribution — Vishwa", AccountType.OTHER, "Profit drawings/distributions to Vishwa", 72),
@@ -90,9 +85,9 @@ EXPENSE_CATEGORIES = [
 ]
 
 OWNERS = [
-    ("Akash", 2000),   # 20.00%
-    ("Pasan", 2000),   # 20.00%
-    ("Vishwa", 2000),  # 20.00%
+    ("Akash", 2000),
+    ("Pasan", 2000),
+    ("Vishwa", 2000),
 ]
 
 DEFAULT_SETTINGS = [
@@ -109,13 +104,11 @@ DEFAULT_SETTINGS = [
 
 
 def seed_master_data(db: Session) -> dict[str, int]:
-    """
-    Idempotent seed function. Inserts missing master data without touching existing records.
-    Returns counts of newly created items.
-    """
+
+
     counts = {"accounts": 0, "categories": 0, "owners": 0, "settings": 0}
 
-    # 1. Accounts
+
     for code, name, acct_type, desc, order in CHART_OF_ACCOUNTS:
         existing = db.query(FinancialAccount).filter(FinancialAccount.code == code).first()
         if not existing:
@@ -130,7 +123,7 @@ def seed_master_data(db: Session) -> dict[str, int]:
             db.add(account)
             counts["accounts"] += 1
 
-    # 2. Expense Categories
+
     for name, acct_code, desc in EXPENSE_CATEGORIES:
         existing = db.query(ExpenseCategory).filter(ExpenseCategory.name == name).first()
         if not existing:
@@ -143,7 +136,7 @@ def seed_master_data(db: Session) -> dict[str, int]:
             db.add(category)
             counts["categories"] += 1
 
-    # 3. Owners
+
     for name, share_bps in OWNERS:
         existing = db.query(Owner).filter(Owner.name == name).first()
         if not existing:
@@ -155,7 +148,7 @@ def seed_master_data(db: Session) -> dict[str, int]:
             db.add(owner)
             counts["owners"] += 1
 
-    # 4. Settings
+
     for key, value, desc in DEFAULT_SETTINGS:
         existing = db.query(AppSetting).filter(AppSetting.key == key).first()
         if not existing:

@@ -49,7 +49,6 @@ export const AccountsPage: React.FC = () => {
     }
   };
 
-  // Transfer form state
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferDate, setTransferDate] = useState(new Date().toISOString().split("T")[0]);
   const [fromAccountId, setFromAccountId] = useState<number>(0);
@@ -58,21 +57,18 @@ export const AccountsPage: React.FC = () => {
   const [transferDesc, setTransferDesc] = useState("");
   const [transferError, setTransferError] = useState("");
 
-  // Cash Count state
   const [cashCountDate, setCashCountDate] = useState(new Date().toISOString().split("T")[0]);
   const [countedCashRupees, setCountedCashRupees] = useState<number>(0);
   const [cashNotes, setCashNotes] = useState("");
   const [investigator, setInvestigator] = useState("");
   const [cashCountSuccess, setCashCountSuccess] = useState("");
 
-  // Bank Reconciliation state
   const [bankRecDate, setBankRecDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<number>(0);
   const [statementBalanceRupees, setStatementBalanceRupees] = useState<number>(0);
   const [bankRecNotes, setBankRecNotes] = useState("");
   const [bankRecSuccess, setBankRecSuccess] = useState("");
 
-  // Reopen Period state
   const [reopenModal, setReopenModal] = useState<{ isOpen: boolean; year: number; month: number }>({
     isOpen: false,
     year: 0,
@@ -81,7 +77,6 @@ export const AccountsPage: React.FC = () => {
   const [reopenReason, setReopenReason] = useState("");
   const [reopenUser, setReopenUser] = useState("Admin");
 
-  // Opening Balance Setup State
   const [openingDate, setOpeningDate] = useState(new Date().toISOString().split("T")[0]);
   const [equalCapitalRupees, setEqualCapitalRupees] = useState("");
   const [akashCapitalRs, setAkashCapitalRs] = useState("");
@@ -121,7 +116,6 @@ export const AccountsPage: React.FC = () => {
   const [reverseReason, setReverseReason] = useState("");
   const [isConfirmSetupModalOpen, setIsConfirmSetupModalOpen] = useState(false);
 
-  // Queries
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts"],
     queryFn: () => api.accounts.list(),
@@ -196,7 +190,6 @@ export const AccountsPage: React.FC = () => {
     enabled: activeTab === "opening",
   });
 
-  // Mutations
   const transferMutation = useMutation({
     mutationFn: () =>
       api.accounts.createTransfer({
@@ -353,13 +346,11 @@ export const AccountsPage: React.FC = () => {
     );
   };
 
-  // Capital amounts
   const akashPaise = rupeesToPaise(Number(akashCapitalRs) || 0);
   const pasanPaise = rupeesToPaise(Number(pasanCapitalRs) || 0);
   const vishwaPaise = rupeesToPaise(Number(vishwaCapitalRs) || 0);
   const totalOwnerCapitalPaise = akashPaise + pasanPaise + vishwaPaise;
 
-  // Relatives amounts
   const relativesGiftPaise = relatives
     .filter((r) => r.classification === "GIFT" && Number(r.amountRs) > 0)
     .reduce((sum, r) => sum + rupeesToPaise(Number(r.amountRs)), 0);
@@ -370,7 +361,6 @@ export const AccountsPage: React.FC = () => {
 
   const totalRelativesFundingPaise = relativesGiftPaise + relativesLoanPaise;
 
-  // Assets routing
   let openingCashDrPaise = 0;
   let openingBankDrPaise = 0;
   let openingSavingsCashDrPaise = 0;
@@ -430,24 +420,21 @@ export const AccountsPage: React.FC = () => {
     postOpeningSetupMutation.mutate(payload);
   };
 
-  // Calculate trial balance totals
   const totalDebitsPaise = trialBalance.reduce((acc, r) => acc + r.total_debit_paise, 0);
   const totalCreditsPaise = trialBalance.reduce((acc, r) => acc + r.total_credit_paise, 0);
   const isBalanced = totalDebitsPaise === totalCreditsPaise;
 
-  // Expected vs counted cash variance
   const expectedCashPaise = expectedCash?.expected_paise ?? 0;
   const countedCashPaise = rupeesToPaise(countedCashRupees);
   const cashVariancePaise = countedCashPaise - expectedCashPaise;
 
-  // Bank book vs statement variance
   const bankBookPaise = expectedBank?.book_balance_paise ?? 0;
   const statementPaise = rupeesToPaise(statementBalanceRupees);
   const bankVariancePaise = statementPaise - bankBookPaise;
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">Accounts & General Ledger</h2>
@@ -495,7 +482,6 @@ export const AccountsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Navigation Sub-Tabs */}
       <div className="flex items-center gap-2 border-b border-border/60 pb-3 overflow-x-auto text-xs font-medium">
         <button
           onClick={() => setActiveTab("treasury")}
@@ -555,10 +541,9 @@ export const AccountsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* TAB 1: TREASURY & GENERAL LEDGER */}
       {activeTab === "treasury" && (
         <div className="space-y-8">
-          {/* Fresh-Start / Setup Pending Banner */}
+
           {!openingData?.posted && (
             <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-200 shadow-sm animate-fadeIn">
               <div className="flex items-center gap-2.5">
@@ -579,7 +564,6 @@ export const AccountsPage: React.FC = () => {
             </div>
           )}
 
-          {/* ── Section A: Cash & Bank (Operating Money) ── */}
           <div className="space-y-3">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -592,7 +576,7 @@ export const AccountsPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Cash in Hand */}
+
               <div
                 className="p-5 rounded-xl border border-border/80 space-y-2"
                 style={{ backgroundColor: "#1E293B" }}
@@ -610,7 +594,6 @@ export const AccountsPage: React.FC = () => {
                 <p className="text-xs text-muted-foreground pt-1">Physical cash available on premises</p>
               </div>
 
-              {/* Main Bank Account */}
               <div
                 className="p-5 rounded-xl border border-border/80 space-y-2"
                 style={{ backgroundColor: "#1E293B" }}
@@ -628,7 +611,6 @@ export const AccountsPage: React.FC = () => {
                 <p className="text-xs text-muted-foreground pt-1">Primary operational bank checking account</p>
               </div>
 
-              {/* Total Available Business Money */}
               <div
                 className="p-5 rounded-xl border border-emerald-500/30 space-y-2 bg-gradient-to-br from-emerald-500/15 via-slate-800 to-slate-900 shadow-md"
               >
@@ -649,7 +631,6 @@ export const AccountsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ── Section B: Business Savings ── */}
           <div className="space-y-3 pt-2">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -662,7 +643,7 @@ export const AccountsPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Total Business Savings */}
+
               <div
                 className="p-5 rounded-xl border border-indigo-500/30 space-y-2 bg-gradient-to-br from-indigo-500/15 via-slate-800 to-slate-900 shadow-md"
               >
@@ -681,7 +662,6 @@ export const AccountsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Savings held as Cash */}
               <div
                 className="p-5 rounded-xl border border-border/80 space-y-2"
                 style={{ backgroundColor: "#1E293B" }}
@@ -699,7 +679,6 @@ export const AccountsPage: React.FC = () => {
                 <p className="text-xs text-muted-foreground pt-1">Physical cash savings reserve</p>
               </div>
 
-              {/* Savings held in Bank */}
               <div
                 className="p-5 rounded-xl border border-border/80 space-y-2"
                 style={{ backgroundColor: "#1E293B" }}
@@ -719,7 +698,6 @@ export const AccountsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Transfer History Table */}
           {transfers.length > 0 && (
             <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-3">
               <div className="flex items-center gap-2">
@@ -757,7 +735,6 @@ export const AccountsPage: React.FC = () => {
             </div>
           )}
 
-          {/* Trial Balance Section */}
           <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -851,11 +828,10 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: CASH & BANK RECONCILIATION */}
       {activeTab === "reconciliation" && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Cash in Hand Count Panel */}
+
             <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-4">
               <div className="flex items-center justify-between border-b border-border/60 pb-3">
                 <div className="flex items-center gap-2">
@@ -905,7 +881,6 @@ export const AccountsPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Difference Display */}
                 <div
                   className={`p-3 rounded-xl border flex items-center justify-between font-mono ${
                     cashVariancePaise === 0
@@ -958,7 +933,6 @@ export const AccountsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Bank Statement Reconciliation Panel */}
             <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-4">
               <div className="flex items-center justify-between border-b border-border/60 pb-3">
                 <div className="flex items-center gap-2">
@@ -1022,7 +996,6 @@ export const AccountsPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Difference Display */}
                 <div
                   className={`p-3 rounded-xl border flex items-center justify-between font-mono ${
                     bankVariancePaise === 0
@@ -1061,9 +1034,8 @@ export const AccountsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Historical Logs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Cash Counts Log */}
+
             <div className="rounded-xl border border-border/70 bg-card/60 p-5 glass-panel space-y-3">
               <h4 className="font-semibold text-sm text-white">Past Cash Checks</h4>
               {cashCounts.length === 0 ? (
@@ -1100,7 +1072,6 @@ export const AccountsPage: React.FC = () => {
               )}
             </div>
 
-            {/* Bank Reconciliations Log */}
             <div className="rounded-xl border border-border/70 bg-card/60 p-5 glass-panel space-y-3">
               <h4 className="font-semibold text-sm text-white">Past Bank Checks</h4>
               {bankRecs.length === 0 ? (
@@ -1142,10 +1113,9 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: MONTH-END CLOSING & PERIOD LOCKING */}
       {activeTab === "periods" && (
         <div className="space-y-8">
-          {/* Closing Checklist */}
+
           <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-4">
             <h3 className="font-bold text-base text-white">Month-End Closing Protocol (Requirement 13)</h3>
             <p className="text-xs text-muted-foreground">
@@ -1192,7 +1162,6 @@ export const AccountsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Periods Status Table */}
           <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-4">
             <h3 className="font-bold text-base text-white">Calendar Accounting Periods (2026)</h3>
 
@@ -1263,7 +1232,6 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: OPENING BALANCES & FRESH START SETUP */}
       {activeTab === "opening" && (
         <div className="space-y-6">
           {setupSuccess && (
@@ -1279,7 +1247,7 @@ export const AccountsPage: React.FC = () => {
           )}
 
           {openingData?.posted ? (
-            /* POSTED VIEW */
+
             <div className="space-y-6">
               <div className="rounded-2xl border border-emerald-500/30 bg-card/60 p-6 glass-panel space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1323,7 +1291,6 @@ export const AccountsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* KPI Breakdown */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
                   <div className="p-4 rounded-xl bg-secondary/30 border border-border/60">
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
@@ -1383,7 +1350,6 @@ export const AccountsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Journal lines table */}
                 <div className="overflow-x-auto pt-2">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-secondary/40 uppercase text-muted-foreground border-b border-border/60">
@@ -1411,7 +1377,7 @@ export const AccountsPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            /* UNPOSTED GUIDED SETUP WIZARD */
+
             <div className="space-y-6">
               <div className="rounded-2xl border border-primary/30 bg-card/60 p-6 glass-panel space-y-6">
                 <div>
@@ -1433,7 +1399,6 @@ export const AccountsPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* STEP 1: OPENING DATE */}
                 <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
                   <div className="flex items-center justify-between border-b border-border/40 pb-2">
                     <h4 className="font-bold text-xs uppercase text-primary tracking-wider flex items-center gap-2">
@@ -1464,7 +1429,6 @@ export const AccountsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* STEP 2: THREE OWNERS EQUAL CAPITAL */}
                 <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-2">
                     <h4 className="font-bold text-xs uppercase text-primary tracking-wider flex items-center gap-2">
@@ -1503,7 +1467,7 @@ export const AccountsPage: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Akash */}
+
                     <div className="p-4 rounded-xl bg-card/60 border border-border/70 space-y-3 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white text-sm">Akash</span>
@@ -1532,7 +1496,6 @@ export const AccountsPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Pasan */}
                     <div className="p-4 rounded-xl bg-card/60 border border-border/70 space-y-3 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white text-sm">Pasan</span>
@@ -1561,7 +1524,6 @@ export const AccountsPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Vishwa */}
                     <div className="p-4 rounded-xl bg-card/60 border border-border/70 space-y-3 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white text-sm">Vishwa</span>
@@ -1592,7 +1554,6 @@ export const AccountsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* STEP 3: RELATIVES CONTRIBUTIONS & SAVINGS */}
                 <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-2">
                     <div>
@@ -1687,7 +1648,6 @@ export const AccountsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* STEP 4: OPTIONAL ASSETS & LIABILITIES */}
                 <div className="p-5 rounded-xl bg-secondary/30 border border-border/60 space-y-4">
                   <h4 className="font-bold text-xs uppercase text-primary tracking-wider flex items-center gap-2 border-b border-border/40 pb-2">
                     <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[11px] flex items-center justify-center font-bold">4</span>
@@ -1729,7 +1689,6 @@ export const AccountsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* STEP 5: DOUBLE-ENTRY BALANCE VERIFICATION */}
                 <div className={`p-5 rounded-xl border space-y-4 ${
                   isOpeningSetupBalanced
                     ? "bg-emerald-500/10 border-emerald-500/30"
@@ -1801,7 +1760,6 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Transfer Modal */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -1924,7 +1882,6 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Reopen Period Modal */}
       {reopenModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-amber-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -1992,7 +1949,6 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Confirm Opening Setup Modal */}
       {isConfirmSetupModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -2034,7 +1990,6 @@ export const AccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Reverse Opening Balances Modal */}
       {isReverseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">

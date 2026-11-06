@@ -1,6 +1,3 @@
-"""
-FastAPI application entry point for the Billiard Hall Management and Accounting System.
-"""
 from __future__ import annotations
 
 import os
@@ -13,31 +10,30 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import engine, get_db, SessionLocal
 from app.models.base import Base
-import app.models  # noqa: F401 — register all models with Base.metadata
+import app.models  # noqa: F401
 from app.services.seed import seed_master_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup and shutdown events."""
-    # Ensure local storage directories exist
+
+
     os.makedirs("./data", exist_ok=True)
     os.makedirs("./backups", exist_ok=True)
 
-    # Create tables if they do not exist
+
     Base.metadata.create_all(bind=engine)
 
-    # Seed core metadata (accounts, owners, categories, settings) idempotently
+
     with SessionLocal() as db:
         seed_master_data(db)
 
-    # Ensure default admin credentials exist (hashed)
+
     from app.routers.auth import ensure_default_credentials
     with SessionLocal() as db:
         ensure_default_credentials(db)
 
     yield
-    # Cleanup on shutdown (if needed)
 
 
 app = FastAPI(
@@ -49,7 +45,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS configuration
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -62,7 +58,7 @@ app.add_middleware(
 @app.get("/health", tags=["System"])
 @app.get("/api/health", tags=["System"])
 def health_check():
-    """Health check endpoint for frontend connection check and uptime monitoring."""
+
     return {
         "status": "healthy",
         "app": settings.business_name,
@@ -75,7 +71,7 @@ def health_check():
 
 @app.get("/api/info", tags=["System"])
 def system_info(db: Session = Depends(get_db)):
-    """System information including business owners and database stats."""
+
     import json
     from app.models.owners import Owner
     from app.models.accounts import FinancialAccount
@@ -112,8 +108,6 @@ def system_info(db: Session = Depends(get_db)):
     }
 
 
-
-# Include business domain routers
 from app.routers import pricing, players, sessions, payments, inventory, expenses, accounts, auth, drinks, owners, backup, reports, equipment, admin, settings as settings_router
 
 app.include_router(auth.router)
@@ -131,5 +125,3 @@ app.include_router(reports.router)
 app.include_router(equipment.router)
 app.include_router(admin.router)
 app.include_router(settings_router.router)
-
-

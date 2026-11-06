@@ -54,7 +54,7 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     db.add(product)
     db.flush()
 
-    # Record opening stock movement if provided
+
     if payload.opening_stock > 0:
         movement = StockMovement(
             product_id=product.id,

@@ -26,8 +26,8 @@ def _normalize_name(name: str) -> str:
 
 
 def _get_player_financials(db: Session, player_id: int) -> tuple[int, int, int]:
-    """Return (total_sessions, total_charges_paise, total_paid_paise) for a player."""
-    # Pool sessions
+
+
     pool_stats = db.query(
         func.count(PoolSession.id),
         func.coalesce(func.sum(PoolSession.final_charge_paise), 0),
@@ -45,7 +45,7 @@ def _get_player_financials(db: Session, player_id: int) -> tuple[int, int, int]:
         SessionPayment.status == PaymentStatus.CONFIRMED,
     ).scalar() or 0
 
-    # PS4 sessions
+
     ps4_stats = db.query(
         func.count(PS4Session.id),
         func.coalesce(func.sum(PS4Session.final_charge_paise), 0),
@@ -175,11 +175,8 @@ def get_player(player_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{player_id}", response_model=PlayerResponse)
 def update_player(player_id: int, payload: PlayerUpdate, db: Session = Depends(get_db)):
-    """
-    Edit a player's name, phone, and notes.
-    Checks for duplicate normalized name (excluding the player being edited).
-    Financial history is always preserved.
-    """
+
+
     p = db.query(Player).filter(Player.id == player_id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -188,7 +185,7 @@ def update_player(player_id: int, payload: PlayerUpdate, db: Session = Depends(g
         normalized = _normalize_name(payload.name)
         if not normalized:
             raise HTTPException(status_code=400, detail="Player name cannot be empty")
-        # Check for duplicate
+
         duplicate = db.query(Player).filter(
             Player.name_normalized == normalized,
             Player.id != player_id,
@@ -238,12 +235,8 @@ def delete_player(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
-    """
-    Permanently delete a player profile.
-    Only allowed if the player has ZERO sessions recorded and ZERO financial history.
-    This prevents accidental deletion of players with outstanding balances or history.
-    Requires administrator authentication and logs to AuditLog.
-    """
+
+
     p = db.query(Player).filter(Player.id == player_id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -257,7 +250,7 @@ def delete_player(
         )
 
     player_name = p.name
-    # Audit log
+
     db.add(AuditLog(
         entity_type="player",
         entity_id=p.id,
@@ -276,14 +269,8 @@ def merge_players(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
-    """
-    Merge a duplicate player profile into a primary player profile.
-    - Moves all pool sessions and PS4 sessions to primary player.
-    - Moves damage charges to primary player.
-    - Preserves duplicate's name as an alias under the primary player.
-    - Marks duplicate player as inactive and links merged_into_id.
-    - Preserves complete financial history and audit trail.
-    """
+
+
     if payload.primary_player_id == payload.duplicate_player_id:
         raise HTTPException(status_code=400, detail="Cannot merge a player into itself.")
 
@@ -295,28 +282,28 @@ def merge_players(
     if not duplicate:
         raise HTTPException(status_code=404, detail="Duplicate player not found.")
 
-    # Move pool sessions
+
     pool_moved = db.query(PoolSession).filter(
         PoolSession.player_id == duplicate.id
     ).update({PoolSession.player_id: primary.id}, synchronize_session=False)
 
-    # Move PS4 sessions player 1
+
     ps4_p1_moved = db.query(PS4Session).filter(
         PS4Session.player1_id == duplicate.id
     ).update({PS4Session.player1_id: primary.id}, synchronize_session=False)
 
-    # Move PS4 sessions player 2
+
     ps4_p2_moved = db.query(PS4Session).filter(
         PS4Session.player2_id == duplicate.id
     ).update({PS4Session.player2_id: primary.id}, synchronize_session=False)
 
-    # Move damage charges if table exists
+
     from app.models.equipment import DamageCharge
     damage_moved = db.query(DamageCharge).filter(
         DamageCharge.player_id == duplicate.id
     ).update({DamageCharge.player_id: primary.id}, synchronize_session=False)
 
-    # Record alias on primary player
+
     alias = PlayerAlias(
         player_id=primary.id,
         alias=duplicate.name,
@@ -325,7 +312,7 @@ def merge_players(
     )
     db.add(alias)
 
-    # Mark duplicate as merged and inactive
+
     duplicate.is_active = False
     duplicate.merged_into_id = primary.id
     merge_note = f"[Merged into #{primary.id} ({primary.name}) on {datetime.now(timezone.utc).strftime('%Y-%m-%d')}]"
@@ -333,7 +320,7 @@ def merge_players(
 
     total_sessions_moved = pool_moved + ps4_p1_moved + ps4_p2_moved
 
-    # Audit log
+
     db.add(AuditLog(
         entity_type="player",
         entity_id=primary.id,
@@ -369,5 +356,3 @@ def merge_players(
         primary_player=primary_resp,
         sessions_moved=total_sessions_moved,
     )
-
-

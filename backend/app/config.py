@@ -1,7 +1,3 @@
-"""
-Application configuration using Pydantic Settings.
-Reads from environment variables or .env file.
-"""
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,25 +10,25 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # Database
+
     database_url: str = "sqlite:///./data/billiard.db"
 
-    # Security
+
     secret_key: str = "CHANGE_ME_IN_PRODUCTION"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 480  # 8 hours
+    access_token_expire_minutes: int = 480
 
-    # Application
+
     debug: bool = False
     environment: str = "production"
 
-    # CORS
+
     allowed_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
-    # Backup
+
     backup_dir: str = "./backups"
 
-    # Business settings (configurable but with safe defaults)
+
     business_name: str = "Pool Town"
     timezone: str = "Asia/Colombo"
 
@@ -44,4 +40,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

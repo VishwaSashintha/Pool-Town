@@ -19,11 +19,10 @@ from app.services.journal import JournalService, JournalLineInput
 router = APIRouter(prefix="/api/expenses", tags=["Expenses"])
 
 
-# ----- Schemas for bill payment -----
 class ExpensePaymentCreate(BaseModel):
     payment_date: date
     amount_paise: int = Field(gt=0)
-    payment_method: str = "cash"   # cash | bank_transfer | savings
+    payment_method: str = "cash"
     account_id: Optional[int] = None
     notes: Optional[str] = None
 
@@ -42,7 +41,6 @@ class ExpensePaymentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# Helper to resolve account for payment
 _METHOD_ACCOUNT_CODE = {
     "cash": "1001",
     "bank_transfer": "1002",
@@ -112,11 +110,11 @@ def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db)):
     db.add(expense)
     db.flush()
 
-    # Determine debit account code: if asset -> asset account, else category account code or 6011 Other
+
     debit_code = payload.asset_account_code if payload.is_asset else (category.account_code or "6011")
     debit_name = f"Asset {debit_code}" if payload.is_asset else category.name
 
-    # Post bill entry: DR Expense/Asset, CR Accounts Payable (2001)
+
     entry = JournalService.post_entry(
         db,
         entry_date=payload.expense_date,
@@ -152,7 +150,7 @@ def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db)):
 
 @router.get("/{expense_id}/payments", response_model=list[ExpensePaymentResponse])
 def list_expense_payments(expense_id: int, db: Session = Depends(get_db)):
-    """List all payments made against an expense bill."""
+
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -180,11 +178,8 @@ def list_expense_payments(expense_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{expense_id}/payments", response_model=ExpensePaymentResponse, status_code=201)
 def pay_expense_bill(expense_id: int, payload: ExpensePaymentCreate, db: Session = Depends(get_db)):
-    """
-    Settle (partially or fully) an expense bill.
-    Journal entry: DR Accounts Payable (2001), CR Cash/Bank (1001/1002/1003).
-    Updates expense status to PARTIAL or PAID automatically.
-    """
+
+
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -194,7 +189,7 @@ def pay_expense_bill(expense_id: int, payload: ExpensePaymentCreate, db: Session
     if expense.status == ExpenseStatus.CANCELLED:
         raise HTTPException(status_code=400, detail="Cannot pay a cancelled expense")
 
-    # How much has already been paid?
+
     already_paid = db.query(
         func.coalesce(func.sum(ExpensePayment.amount_paise), 0)
     ).filter(
@@ -209,23 +204,23 @@ def pay_expense_bill(expense_id: int, payload: ExpensePaymentCreate, db: Session
             detail=f"Payment amount ({payload.amount_paise} paise) exceeds remaining balance ({remaining} paise). Outstanding: Rs. {remaining / 100:.2f}"
         )
 
-    # Resolve credit account
+
     method_key = payload.payment_method.lower()
     if method_key not in _METHOD_ACCOUNT_CODE:
         raise HTTPException(status_code=400, detail=f"Invalid payment method. Use: cash, bank_transfer, savings")
 
     credit_code = _METHOD_ACCOUNT_CODE[method_key]
 
-    # Find financial account for account_id lookup
+
     credit_account = db.query(FinancialAccount).filter(FinancialAccount.code == credit_code).first()
     credit_name = credit_account.name if credit_account else credit_code
 
-    # Generate payment reference
+
     date_str = payload.payment_date.strftime("%Y%m%d")
     count = db.query(ExpensePayment).filter(ExpensePayment.reference.like(f"EP-{date_str}-%")).count()
     ref = f"EP-{date_str}-{count + 1:04d}"
 
-    # Post double-entry: DR Accounts Payable (2001) — reduces liability, CR Cash/Bank — reduces asset
+
     entry = JournalService.post_entry(
         db,
         entry_date=payload.payment_date,
@@ -239,7 +234,7 @@ def pay_expense_bill(expense_id: int, payload: ExpensePaymentCreate, db: Session
         notes=payload.notes,
     )
 
-    # Determine method enum
+
     method_enum_map = {"cash": PaymentMethod.CASH, "bank_transfer": PaymentMethod.BANK_TRANSFER, "savings": PaymentMethod.OTHER}
     payment = ExpensePayment(
         reference=ref,
@@ -255,7 +250,7 @@ def pay_expense_bill(expense_id: int, payload: ExpensePaymentCreate, db: Session
     db.add(payment)
     db.flush()
 
-    # Update expense status
+
     new_paid_total = already_paid + payload.amount_paise
     if new_paid_total >= expense.amount_paise:
         expense.status = ExpenseStatus.PAID
@@ -276,4 +271,3 @@ def pay_expense_bill(expense_id: int, payload: ExpensePaymentCreate, db: Session
         notes=payment.notes,
         created_at=payment.created_at,
     )
-

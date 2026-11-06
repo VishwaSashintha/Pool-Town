@@ -1,6 +1,3 @@
-/**
- * EquipmentPage — Track cue sticks, tables, PS4 hardware, repairs, and maintenance purchases.
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,7 +21,6 @@ export const EquipmentPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Form states
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split("T")[0]);
   const [category, setCategory] = useState<string>("cue_stick");
   const [itemName, setItemName] = useState("");
@@ -101,7 +97,6 @@ export const EquipmentPage: React.FC = () => {
     });
   };
 
-  // Filtered
   const filteredPurchases = purchases.filter((p: EquipmentPurchase) => {
     const matchesSearch =
       p.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,7 +106,6 @@ export const EquipmentPage: React.FC = () => {
     return matchesSearch && matchesCat;
   });
 
-  // Summary Metrics
   const totalSpend = purchases.reduce((sum: number, p: EquipmentPurchase) => sum + p.amount_paise, 0);
   const cueSpend = purchases
     .filter((p: EquipmentPurchase) => p.category === "cue_stick" || p.category === "accessory")
@@ -142,7 +136,7 @@ export const EquipmentPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -172,7 +166,6 @@ export const EquipmentPage: React.FC = () => {
         </div>
       )}
 
-      {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -211,7 +204,6 @@ export const EquipmentPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -244,7 +236,6 @@ export const EquipmentPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Equipment Table */}
       <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -313,7 +304,6 @@ export const EquipmentPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Equipment Purchase Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">

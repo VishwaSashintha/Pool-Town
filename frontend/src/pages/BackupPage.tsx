@@ -1,6 +1,3 @@
-/**
- * BackupPage — Automated SQLite database snapshot creation, download, integrity check, and restoration.
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -84,7 +81,7 @@ export const BackupPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -122,7 +119,6 @@ export const BackupPage: React.FC = () => {
         </div>
       )}
 
-      {/* Safety & Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -152,7 +148,6 @@ export const BackupPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Backups Table */}
       <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-700 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white">Available Backups</h2>
@@ -234,7 +229,6 @@ export const BackupPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Backup Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
@@ -288,7 +282,6 @@ export const BackupPage: React.FC = () => {
         </div>
       )}
 
-      {/* Restore Backup Modal */}
       {selectedBackupToRestore && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border-2 border-rose-500/50 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">

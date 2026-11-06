@@ -1,7 +1,3 @@
-"""
-Reports router — daily, weekly, monthly summaries with real backend data.
-All calculations are backend-authoritative.
-"""
 from __future__ import annotations
 
 from datetime import date, timedelta
@@ -30,7 +26,7 @@ def _date_range_for_day(d: date):
 
 
 def _date_range_for_week(ref: date):
-    # Week starting Monday
+
     monday = ref - timedelta(days=ref.weekday())
     sunday = monday + timedelta(days=6)
     return monday, sunday
@@ -99,7 +95,7 @@ def _payments_summary(db: Session, start: date, end: date):
 
 
 def _outstanding_summary(db: Session):
-    """Calculate total outstanding across all active unpaid/partial sessions."""
+
     total_outstanding = 0
 
     pool_sessions = db.query(PoolSession).filter(
@@ -154,7 +150,7 @@ def _expenses_summary(db: Session, start: date, end: date):
 
 
 def _drinks_summary(db: Session, start: date, end: date):
-    """Sum active soft drink sales in date range, excluding cancelled sales."""
+
     sales = db.query(ProductSale).filter(
         ProductSale.sale_date >= start,
         ProductSale.sale_date <= end,
@@ -207,11 +203,6 @@ def _loan_summary(db: Session):
         "active_loans_count": len(loans),
         "total_loan_outstanding_paise": total_outstanding,
     }
-
-
-# ============================================================
-# ENDPOINTS
-# ============================================================
 
 
 @router.get("/daily")
@@ -294,7 +285,7 @@ def monthly_report(
     total_revenue = sessions["total_session_revenue_paise"] + drinks["drinks_revenue_paise"]
     net_income = max(0, total_revenue - expenses["total_expenses_paise"])
 
-    # Profit allocation preview (40% savings, 20% each owner)
+
     savings_share = round(net_income * 0.4)
     owner_share_each = round(net_income * 0.2)
     vishwa_share = max(0, net_income - savings_share - owner_share_each * 2)
@@ -328,7 +319,7 @@ def dashboard_summary(
     report_date: date = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    """Dashboard-level summary: today's stats + overall balances."""
+
     d = report_date or date.today()
     start, end = _date_range_for_day(d)
 
@@ -361,10 +352,8 @@ def dashboard_analytics(
     end_date: Optional[date] = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    """
-    Comprehensive analytics endpoint for the modern dashboard.
-    Backend-authoritative aggregation across sessions, drinks, payments, expenses, and accounts.
-    """
+
+
     today = date.today()
     start = start_date or today
     end = end_date or start
@@ -376,7 +365,7 @@ def dashboard_analytics(
     prev_end = start - timedelta(days=1)
     prev_start = prev_end - timedelta(days=duration_days - 1)
 
-    # 1. Period revenue & sessions
+
     curr_sessions = _sessions_summary(db, start, end)
     curr_drinks = _drinks_summary(db, start, end)
     curr_payments = _payments_summary(db, start, end)
@@ -387,7 +376,7 @@ def dashboard_analytics(
     drinks_rev = curr_drinks["drinks_revenue_paise"]
     total_rev = pool_rev + ps4_rev + drinks_rev
 
-    # In our accounting system, soft drinks are cash sales collected at time of sale
+
     cash_collected = curr_payments["cash_collected_paise"] + drinks_rev
     bank_collected = curr_payments["bank_collected_paise"]
     total_collected = cash_collected + bank_collected
@@ -396,7 +385,7 @@ def dashboard_analytics(
     net_profit = total_rev - total_expenses
     total_outstanding = _outstanding_summary(db)
 
-    # 2. Previous period comparisons
+
     prev_sessions = _sessions_summary(db, prev_start, prev_end)
     prev_drinks = _drinks_summary(db, prev_start, prev_end)
     prev_payments = _payments_summary(db, prev_start, prev_end)
@@ -416,7 +405,7 @@ def dashboard_analytics(
             return 0.0
         return None
 
-    # 3. Daily / interval trend aggregation
+
     pool_daily = (
         db.query(PoolSession.session_date, func.coalesce(func.sum(PoolSession.final_charge_paise), 0))
         .filter(PoolSession.session_date >= start, PoolSession.session_date <= end, PoolSession.status != SessionStatus.CANCELLED)
@@ -508,7 +497,7 @@ def dashboard_analytics(
             curr += timedelta(days=1)
         trend = list(monthly_trend.values())
 
-    # 4. Collections by service
+
     pool_collected = (
         db.query(func.coalesce(func.sum(SessionPayment.amount_paise), 0))
         .filter(
@@ -533,7 +522,7 @@ def dashboard_analytics(
     )
     drinks_collected = drinks_rev
 
-    # Service breakdown for circular doughnut and bar charts
+
     services_breakdown = [
         {
             "category": "Pool Table",
@@ -567,7 +556,7 @@ def dashboard_analytics(
         },
     ]
 
-    # 5. Payment status breakdown in range
+
     pool_in_range = (
         db.query(PoolSession)
         .filter(PoolSession.session_date >= start, PoolSession.session_date <= end, PoolSession.status != SessionStatus.CANCELLED)
@@ -617,7 +606,7 @@ def dashboard_analytics(
     unpaid_sessions_count = status_map["partial"]["count"] + status_map["pending"]["count"]
     unpaid_sessions_outstanding = status_map["partial"]["outstanding_paise"] + status_map["pending"]["outstanding_paise"]
 
-    # 6. Expenses by Category
+
     exp_cats = (
         db.query(
             ExpenseCategory.id,
@@ -646,7 +635,7 @@ def dashboard_analytics(
         for e in exp_cats
     ]
 
-    # 7. Drinks Stock Overview
+
     drinks_cat = db.query(ProductCategory).filter(ProductCategory.name == "Soft Drinks").first()
     products_list = []
     total_bottles = 0
@@ -679,10 +668,10 @@ def dashboard_analytics(
         or 0
     )
 
-    # 8. Account Balances
+
     balances = _account_balances(db, as_of=end)
 
-    # 9. Recent sessions (latest 8)
+
     pool_recents = db.query(PoolSession).filter(PoolSession.status != SessionStatus.CANCELLED).order_by(PoolSession.session_date.desc(), PoolSession.id.desc()).limit(8).all()
     ps4_recents = db.query(PS4Session).filter(PS4Session.status != SessionStatus.CANCELLED).order_by(PS4Session.session_date.desc(), PS4Session.id.desc()).limit(8).all()
     recent_sessions = []
@@ -781,10 +770,6 @@ def dashboard_analytics(
         "recent_sessions": recent_sessions,
     }
 
-
-# ==========================================
-# EXCEL (.XLSX) EXPORTS
-# ==========================================
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -947,4 +932,3 @@ def export_drinks_excel(
         media_type=XLSX_MIME,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
-

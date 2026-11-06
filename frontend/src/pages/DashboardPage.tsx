@@ -1,8 +1,3 @@
-/**
- * DashboardPage — Modern, professional analytics admin dashboard for Billiard Hall Management System.
- * Powered by backend-authoritative live accounting ledger data.
- * Adheres strictly to the dark color palette (#0F172A, #1E293B, #334155, #475569, #F8FAFC, #38BDF8).
- */
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -43,7 +38,6 @@ import {
 import { api } from "@/api/client";
 import { formatLKR, paiseToRupees } from "@/lib/money";
 
-/* ── Status badge ──────────────────────────────────────────────────────── */
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const s = status.toLowerCase();
   const style =
@@ -59,7 +53,6 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-/* ── Date range calculation helper ─────────────────────────────────────── */
 type DatePreset = "today" | "yesterday" | "this_week" | "this_month" | "last_month" | "this_year" | "custom";
 
 function formatDateYMD(d: Date): string {
@@ -112,7 +105,6 @@ function resolveDateRange(preset: DatePreset, customStart: string, customEnd: st
   }
 }
 
-/* ── KPI Sparkline Component ───────────────────────────────────────────── */
 const MiniSparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
   if (!data || data.length === 0) return null;
   const chartData = data.map((val, idx) => ({ idx, val }));
@@ -140,7 +132,6 @@ const MiniSparkline: React.FC<{ data: number[]; color: string }> = ({ data, colo
   );
 };
 
-/* ── KPI Card ──────────────────────────────────────────────────────────── */
 interface KpiCardProps {
   title: string;
   value: string;
@@ -245,7 +236,6 @@ const KpiCard: React.FC<KpiCardProps> = ({
   );
 };
 
-/* ── Custom Recharts Tooltip ───────────────────────────────────────────── */
 const AnalyticsTooltip: React.FC<any> = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
   return (
@@ -271,7 +261,6 @@ const AnalyticsTooltip: React.FC<any> = ({ active, payload, label }) => {
   );
 };
 
-/* ── Main Dashboard Page ───────────────────────────────────────────────── */
 export const DashboardPage: React.FC = () => {
   const [preset, setPreset] = useState<DatePreset>("this_month");
   const [customStart, setCustomStart] = useState(() => formatDateYMD(new Date()));
@@ -294,10 +283,9 @@ export const DashboardPage: React.FC = () => {
   } = useQuery({
     queryKey: ["dashboard-analytics", start, end],
     queryFn: () => api.reports.getAnalytics(start, end),
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 30,
   });
 
-  /* Chart data transformations */
   const trendChartData = useMemo(() => {
     if (!analytics?.revenue_trend) return [];
     return analytics.revenue_trend.map(pt => ({
@@ -362,7 +350,6 @@ export const DashboardPage: React.FC = () => {
   const hasRevenueData = totalRevenuePaise > 0;
   const hasTrendData = trendChartData.some(d => d.total > 0 || d.collections > 0);
 
-  // Sparkline data arrays
   const revenueSparkline = useMemo(
     () => trendChartData.map(d => d.total),
     [trendChartData]
@@ -378,7 +365,7 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── TOP HEADER ──────────────────────────────────────────────────────── */}
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2">
@@ -394,9 +381,8 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Date presets & actions */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Preset Buttons */}
+
           <div
             className="flex items-center rounded-lg p-0.5 overflow-x-auto max-w-full"
             style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -426,7 +412,6 @@ export const DashboardPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Custom Date Inputs if preset is custom */}
           {preset === "custom" && (
             <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1">
               <input
@@ -445,7 +430,6 @@ export const DashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* Refresh Action */}
           <button
             onClick={() => refetch()}
             disabled={isLoading || isRefetching}
@@ -457,7 +441,6 @@ export const DashboardPage: React.FC = () => {
             />
           </button>
 
-          {/* Quick Actions */}
           <Link
             to="/sessions/pool?action=new"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-400 text-slate-950 hover:bg-sky-300 transition-all shadow-sm"
@@ -473,7 +456,6 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Error Banner if API failed */}
       {isError && (
         <div className="rounded-xl p-4 bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
@@ -486,9 +468,8 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── FIRST ROW: FOUR COMPACT STATISTIC CARDS ───────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Total Revenue */}
+
         <KpiCard
           title="Total Revenue"
           value={formatLKR(kpis?.total_revenue_paise ?? 0)}
@@ -499,7 +480,6 @@ export const DashboardPage: React.FC = () => {
           sparkline={revenueSparkline}
         />
 
-        {/* 2. Total Collections */}
         <KpiCard
           title="Total Collections"
           value={formatLKR(kpis?.total_collected_paise ?? 0)}
@@ -511,7 +491,6 @@ export const DashboardPage: React.FC = () => {
           href="/accounts"
         />
 
-        {/* 3. Outstanding Payments */}
         <KpiCard
           title="Outstanding Payments"
           value={formatLKR(kpis?.total_outstanding_paise ?? 0)}
@@ -523,7 +502,6 @@ export const DashboardPage: React.FC = () => {
           href="/outstanding-payments"
         />
 
-        {/* 4. Net Profit */}
         <KpiCard
           title="Net Profit"
           value={formatLKR(kpis?.net_profit_paise ?? 0)}
@@ -536,9 +514,8 @@ export const DashboardPage: React.FC = () => {
         />
       </div>
 
-      {/* ── SECOND ROW: BUSINESS PERFORMANCE AND REVENUE TREND ─────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* LEFT PANEL: BUSINESS ACTIVITY SUMMARY (4 of 12 cols on desktop) */}
+
         <div
           className="lg:col-span-4 rounded-xl p-5 flex flex-col justify-between"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -554,7 +531,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             <div className="space-y-2.5">
-              {/* Pool Table Activity */}
+
               <Link
                 to="/sessions/pool"
                 className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 hover:border-sky-500/40 transition-colors group"
@@ -582,7 +559,6 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </Link>
 
-              {/* PS4 Activity */}
               <Link
                 to="/sessions/ps4"
                 className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 hover:border-indigo-500/40 transition-colors group"
@@ -610,7 +586,6 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </Link>
 
-              {/* Soft Drinks Activity */}
               <Link
                 to="/drinks/sales"
                 className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 hover:border-amber-500/40 transition-colors group"
@@ -638,7 +613,6 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </Link>
 
-              {/* Expenses Activity */}
               <Link
                 to="/expenses"
                 className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 hover:border-rose-500/40 transition-colors group"
@@ -666,7 +640,6 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </Link>
 
-              {/* Unpaid Sessions Activity */}
               <Link
                 to="/outstanding-payments"
                 className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 hover:border-amber-500/40 transition-colors group"
@@ -712,7 +685,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT PANEL: REVENUE TREND LINE CHART (8 of 12 cols on desktop) */}
         <div
           className="lg:col-span-8 rounded-xl p-5"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -727,7 +699,6 @@ export const DashboardPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Series Filter Selector */}
             <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-0.5 text-xs">
               {(
                 [
@@ -752,7 +723,6 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Chart or Honest Empty State */}
           {!hasTrendData ? (
             <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-700/60 rounded-lg">
               <TrendingUp className="w-8 h-8 text-slate-600 mb-2" />
@@ -843,7 +813,6 @@ export const DashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* Interactive Legend Row */}
           <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-center gap-6 text-xs text-slate-400">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-[#38BDF8]" /> Pool Table
@@ -858,7 +827,6 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── THIRD ROW: LARGE CIRCULAR REVENUE DISTRIBUTION DOUGHNUT CHART ──── */}
       <div
         className="rounded-xl p-5 sm:p-6"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -889,7 +857,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            {/* Doughnut Chart Container with Center Text */}
+
             <div className="md:col-span-6 lg:col-span-5 relative flex items-center justify-center min-h-[280px]">
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
@@ -929,7 +897,6 @@ export const DashboardPage: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* Total Revenue Center Overlay */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mb-0.5">
                   Total Revenue
@@ -941,7 +908,6 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Category Breakdown & Detailed Legend */}
             <div className="md:col-span-6 lg:col-span-7 flex flex-col justify-center space-y-4">
               <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Category Contribution Breakdown
@@ -979,7 +945,6 @@ export const DashboardPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Percentage progress bar */}
                       <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
@@ -1007,7 +972,6 @@ export const DashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* ── FOURTH ROW: REVENUE COMPARISON BAR CHART ──────────────────────── */}
       <div
         className="rounded-xl p-5"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -1022,7 +986,6 @@ export const DashboardPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Metric Selector Toggle */}
           <div
             className="flex items-center rounded-lg p-0.5 bg-slate-900 border border-slate-700 text-xs"
           >
@@ -1096,9 +1059,8 @@ export const DashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* ── FIFTH ROW: COMPACT ANALYTICS PANELS (4 Panels in responsive grid) ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Panel A: Payment Status */}
+
         <div
           className="rounded-xl p-4 flex flex-col justify-between"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -1118,7 +1080,6 @@ export const DashboardPage: React.FC = () => {
 
             <p className="text-xs text-slate-400 mb-3">Settlement breakdown for {rangeLabel}</p>
 
-            {/* Stacked Progress Bar */}
             {paymentStatus?.total_sessions ? (
               <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-900 mb-4">
                 <div
@@ -1176,7 +1137,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Panel B: Collection Method & Liquidity */}
         <div
           className="rounded-xl p-4 flex flex-col justify-between"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -1215,7 +1175,6 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Live Account Balances: Operating Cash/Bank separated from Business Savings */}
             <div className="pt-2 border-t border-slate-700/60 space-y-1.5 text-[11px]">
               <div className="flex justify-between text-slate-400">
                 <span>Cash in Hand</span>
@@ -1245,7 +1204,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Panel C: Expense Overview */}
         <div
           className="rounded-xl p-4 flex flex-col justify-between"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -1299,7 +1257,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Panel D: Drinks Stock Overview */}
         <div
           className="rounded-xl p-4 flex flex-col justify-between"
           style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -1340,7 +1297,6 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Product items mini list */}
             {inventory?.products && inventory.products.length > 0 ? (
               <div className="space-y-1.5 text-[11px] max-h-28 overflow-y-auto">
                 {inventory.products.slice(0, 3).map(p => (
@@ -1373,7 +1329,6 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── SIXTH SECTION: RECENT ACTIVITY / SESSIONS (Preserved) ─────────── */}
       <div
         className="rounded-xl p-5"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}

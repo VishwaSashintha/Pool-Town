@@ -1,8 +1,3 @@
-/**
- * Core TypeScript definitions for the Billiard Hall Management System.
- * All monetary amounts are integers representing LKR paise (1 Rs. = 100 paise).
- */
-
 export type SessionStatus = "pending" | "partial" | "paid" | "cancelled" | "adjusted";
 export type PaymentMethod = "cash" | "bank_transfer" | "other";
 export type PaymentStatus = "confirmed" | "reversed" | "pending";
@@ -767,4 +762,3 @@ export interface OwnerCollectionUpdate {
   source_category?: string | null;
   destination_account_id?: number | null;
 }
-

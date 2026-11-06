@@ -1,6 +1,3 @@
-/**
- * LoansPage — Track partner loans, external debts, principal repayments, and interest expenses.
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -37,7 +34,6 @@ export const LoansPage: React.FC = () => {
     }
   };
 
-  // Create Loan Form States
   const [lenderName, setLenderName] = useState("");
   const [loanType, setLoanType] = useState<"owner" | "external">("owner");
   const [selectedOwnerId, setSelectedOwnerId] = useState<number | "">("");
@@ -47,7 +43,6 @@ export const LoansPage: React.FC = () => {
   const [repaymentTerms, setRepaymentTerms] = useState("");
   const [disbursementAccountId, setDisbursementAccountId] = useState<number | "">("");
 
-  // Repayment Form States
   const [repaymentDate, setRepaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [principalPaymentRs, setPrincipalPaymentRs] = useState("");
   const [interestPaymentRs, setInterestPaymentRs] = useState("0");
@@ -192,14 +187,13 @@ export const LoansPage: React.FC = () => {
     });
   };
 
-  // Metric Totals
   const totalOutstanding = loans.reduce((sum: number, l: Loan) => sum + (l.current_outstanding_paise || 0), 0);
   const activeLoans = loans.filter((l: Loan) => l.status === "active");
   const totalRepaid = loans.reduce((sum: number, l: Loan) => sum + Math.max(0, l.original_principal_paise - l.current_outstanding_paise), 0);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -240,7 +234,6 @@ export const LoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -283,7 +276,6 @@ export const LoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Accounting Notice */}
       <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 text-xs text-slate-400 flex items-start gap-3">
         <HandCoins className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
         <div>
@@ -292,7 +284,6 @@ export const LoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Loans Table */}
       <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-700 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white">Loans Schedule & Ledger</h2>
@@ -407,7 +398,6 @@ export const LoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Record New Loan Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
@@ -567,7 +557,6 @@ export const LoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* Record Repayment Modal */}
       {selectedLoanForRepayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
@@ -709,7 +698,6 @@ export const LoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* Loan History Drawer / Modal */}
       {selectedLoanForHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">

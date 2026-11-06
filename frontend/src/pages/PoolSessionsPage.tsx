@@ -58,26 +58,23 @@ export const PoolSessionsPage: React.FC = () => {
   const [paymentSession, setPaymentSession] = useState<PoolSession | null>(null);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
-  // New session form state
   const [formDate, setFormDate] = useState<string>(selectedDate);
   const [playerName, setPlayerName] = useState<string>("");
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
   const [manualChargeRupees, setManualChargeRupees] = useState<number | "">("");
   const [discountRupees, setDiscountRupees] = useState<number>(0);
-  // Payment split at creation
+
   const [cashPaidRupees, setCashPaidRupees] = useState<number>(0);
   const [bankPaidRupees, setBankPaidRupees] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
   const [formError, setFormError] = useState<string>("");
 
-  // Collect payment modal state
   const [collectCashRupees, setCollectCashRupees] = useState<number>(0);
   const [collectBankRupees, setCollectBankRupees] = useState<number>(0);
   const [collectDate, setCollectDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [payError, setPayError] = useState<string>("");
 
-  // Void session modal state
   const [voidSession, setVoidSession] = useState<PoolSession | null>(null);
   const [voidAdminUser, setVoidAdminUser] = useState("");
   const [voidAdminPass, setVoidAdminPass] = useState("");
@@ -107,7 +104,6 @@ export const PoolSessionsPage: React.FC = () => {
     queryFn: () => api.players.list(),
   });
 
-  // Live pool charge calculation
   const calculatedStandardChargePaise = (() => {
     if (durationMinutes <= 0) return 0;
     if (durationMinutes <= 60) return 50000;
@@ -130,7 +126,6 @@ export const PoolSessionsPage: React.FC = () => {
   const totalPaidRupees = cashPaidRupees + bankPaidRupees;
   const stillToPayRupees = Math.max(0, finalChargeRupees - totalPaidRupees);
 
-  // Create mutation — handles cash + bank split if both entered
   const createMutation = useMutation({
     mutationFn: async () => {
       const hasCash = cashPaidRupees > 0;
@@ -152,7 +147,6 @@ export const PoolSessionsPage: React.FC = () => {
         notes,
       });
 
-      // If both cash and bank were entered at creation, record the second payment
       if (hasCash && hasBank) {
         await api.payments.record({
           session_type: "pool",
@@ -177,7 +171,6 @@ export const PoolSessionsPage: React.FC = () => {
     },
   });
 
-  // Collect payment mutation — handles cash + bank split
   const payMutation = useMutation({
     mutationFn: async () => {
       if (!paymentSession) throw new Error("No session selected");
@@ -269,7 +262,6 @@ export const PoolSessionsPage: React.FC = () => {
     setPayError("");
   };
 
-  // When duration changes, reset cash to full price (convenience)
   useEffect(() => {
     if (isNewModalOpen) {
       setCashPaidRupees(paiseToRupees(finalChargePaise));
@@ -284,7 +276,7 @@ export const PoolSessionsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">Pool Board</h2>
@@ -304,7 +296,6 @@ export const PoolSessionsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl border border-border/70 bg-card/40 glass-panel">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -346,7 +337,6 @@ export const PoolSessionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Sessions Table */}
       <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden glass-panel">
         {isLoading ? (
           <div className="p-12 text-center text-sm text-muted-foreground">Loading sessions...</div>
@@ -439,7 +429,6 @@ export const PoolSessionsPage: React.FC = () => {
         )}
       </div>
 
-      {/* ── New Pool Session Modal ─────────────────────────────────────────────── */}
       {isNewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-lg rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
@@ -469,7 +458,7 @@ export const PoolSessionsPage: React.FC = () => {
             )}
 
             <div className="space-y-4 text-sm">
-              {/* Date & Customer */}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -505,7 +494,6 @@ export const PoolSessionsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Duration Selector */}
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Time Played
@@ -531,7 +519,6 @@ export const PoolSessionsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Price Summary */}
               <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/80 space-y-2 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Time played:</span>
@@ -543,7 +530,6 @@ export const PoolSessionsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment Section */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-2">
                   Payment received now
@@ -582,7 +568,6 @@ export const PoolSessionsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Notes (Optional)
@@ -596,7 +581,6 @@ export const PoolSessionsPage: React.FC = () => {
                 />
               </div>
 
-              {/* Advanced adjustments (collapsed by default) */}
               <div>
                 <button
                   type="button"
@@ -661,7 +645,6 @@ export const PoolSessionsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Collect Payment Modal ─────────────────────────────────────────────── */}
       {paymentSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -692,7 +675,6 @@ export const PoolSessionsPage: React.FC = () => {
               </div>
             )}
 
-            {/* Summary */}
             <div className="p-3 rounded-xl bg-secondary/30 border border-border/70 space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total price:</span>
@@ -708,7 +690,6 @@ export const PoolSessionsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Date */}
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Payment date
@@ -721,7 +702,6 @@ export const PoolSessionsPage: React.FC = () => {
               />
             </div>
 
-            {/* Cash + Bank split */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -749,7 +729,6 @@ export const PoolSessionsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Outstanding after this collection */}
             <div className="p-2.5 rounded-lg bg-secondary/20 border border-border/40 flex justify-between text-xs font-mono">
               <span className="text-muted-foreground">Still to pay after this:</span>
               <span className={collectOutstanding > 0 ? "text-amber-400 font-bold" : "text-emerald-400 font-bold"}>
@@ -778,7 +757,6 @@ export const PoolSessionsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Void Session Modal ────────────────────────────────────────────────── */}
       {voidSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">

@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],
   content: [
@@ -8,7 +7,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Specified palette
         'bg-base':    '#0F172A',
         'surface-1':  '#1E293B',
         'surface-2':  '#334155',
@@ -19,7 +17,6 @@ export default {
         'warning':    '#F59E0B',
         'danger':     '#EF4444',
 
-        // Tailwind CSS-var mappings
         border: 'hsl(var(--border))',
         input:  'hsl(var(--input))',
         ring:   'hsl(var(--ring))',

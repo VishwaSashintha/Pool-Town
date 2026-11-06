@@ -1,7 +1,3 @@
-"""
-Pydantic schemas for financial and operational reports.
-All monetary amounts are in integer paise (1 LKR = 100 paise).
-"""
 from __future__ import annotations
 
 from datetime import date
@@ -10,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class DailySessionSummary(BaseModel):
-    service: str  # "Pool Table" or "PS4 Gaming"
+    service: str
     total_sessions: int
     chargeable_minutes: int
     total_charge_paise: int
@@ -42,7 +38,7 @@ class DailyExpenseItem(BaseModel):
     category_name: str
     description: str
     amount_paise: int
-    payment_method: str  # "cash" or "bank"
+    payment_method: str
 
 
 class DailyClosingReport(BaseModel):
@@ -56,7 +52,7 @@ class DailyClosingReport(BaseModel):
     gross_profit_paise: int
     total_expenses_paise: int
     net_operating_profit_paise: int
-    # Cash reconciliation for the day
+
     opening_cash_paise: int
     cash_inflows_paise: int
     cash_outflows_paise: int
@@ -119,7 +115,7 @@ class MonthlyComparativePnL(BaseModel):
     prev_total_operating_expenses_paise: int
     net_profit_paise: int
     prev_net_profit_paise: int
-    # Profit allocations (Decision D-009)
+
     savings_allocation_paise: int
     akash_allocation_paise: int
     pasan_allocation_paise: int
@@ -134,10 +130,10 @@ class PlayerDebtItem(BaseModel):
     total_charged_paise: int
     total_paid_paise: int
     total_outstanding_paise: int
-    current_bucket_paise: int   # 0-30 days
-    bucket_31_60_paise: int     # 31-60 days
-    bucket_61_90_paise: int     # 61-90 days
-    bucket_90_plus_paise: int   # 90+ days
+    current_bucket_paise: int
+    bucket_31_60_paise: int
+    bucket_61_90_paise: int
+    bucket_90_plus_paise: int
     last_session_date: Optional[date]
     last_payment_date: Optional[date]
 

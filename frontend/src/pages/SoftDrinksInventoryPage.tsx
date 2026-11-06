@@ -43,7 +43,6 @@ export const SoftDrinksInventoryPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"products" | "stock-count" | "delivery">("products");
   const [editingProduct, setEditingProduct] = useState<DrinkProduct | null>(null);
 
-  // Add product form
   const [newName, setNewName] = useState("");
   const [newPurchaseCost, setNewPurchaseCost] = useState<number>(0);
   const [newSellingPrice, setNewSellingPrice] = useState<number>(0);
@@ -52,13 +51,11 @@ export const SoftDrinksInventoryPage: React.FC = () => {
   const [addError, setAddError] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Stock count state
   const [countDate, setCountDate] = useState(new Date().toISOString().split("T")[0]);
   const [countEntries, setCountEntries] = useState<Record<number, number>>({});
   const [countError, setCountError] = useState("");
   const [countSuccess, setCountSuccess] = useState("");
 
-  // Delivery state
   const [deliveryProductId, setDeliveryProductId] = useState<number | null>(null);
   const [deliveryQty, setDeliveryQty] = useState<number>(1);
   const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split("T")[0]);
@@ -167,7 +164,7 @@ export const SoftDrinksInventoryPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">Soft Drinks Inventory</h2>
@@ -184,7 +181,6 @@ export const SoftDrinksInventoryPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl border border-border/70 bg-card/60 glass-panel">
           <div className="flex items-center gap-2 text-amber-400 text-xs font-medium mb-1">
@@ -212,7 +208,6 @@ export const SoftDrinksInventoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 border-b border-border/60">
         {[
           { id: "products", label: "Flavours & Prices", icon: Coffee },
@@ -237,10 +232,9 @@ export const SoftDrinksInventoryPage: React.FC = () => {
         })}
       </div>
 
-      {/* Tab: Products */}
       {activeTab === "products" && (
         <div className="space-y-4">
-          {/* Add Form */}
+
           {showAddForm && (
             <div className="p-5 rounded-xl border border-amber-500/30 bg-card/80 glass-panel space-y-4">
               <div className="flex items-center justify-between">
@@ -322,7 +316,6 @@ export const SoftDrinksInventoryPage: React.FC = () => {
             </div>
           )}
 
-          {/* Products Table */}
           <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden glass-panel">
             {isLoading ? (
               <div className="p-8 text-center text-sm text-muted-foreground">Loading drinks...</div>
@@ -445,7 +438,6 @@ export const SoftDrinksInventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab: Stock Count */}
       {activeTab === "stock-count" && (
         <div className="space-y-4">
           <div className="p-5 rounded-xl border border-border/70 bg-card/60 glass-panel space-y-4">
@@ -529,7 +521,6 @@ export const SoftDrinksInventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab: Delivery */}
       {activeTab === "delivery" && (
         <div className="space-y-4">
           <div className="p-5 rounded-xl border border-border/70 bg-card/60 glass-panel space-y-4">

@@ -1,14 +1,3 @@
-/**
- * PartnersPage (formerly OwnersLoansPage) — Simplified Partner financial management.
- * Features:
- * 1. Monthly Partner Summary at top (Month selector, Net Profit, 40% Savings, 60% Partners, Advances, Distributions, Remaining Payable).
- * 2. Partner Profiles (Akash, Pasan, Vishwa) with Capital invested, 20% Monthly share, Advances, Remaining Payable.
- * 3. Simple "Record Money Collected" feature for Akash, Pasan, Vishwa (with unknown amount/pending confirmation support).
- * 4. Money Collected History Table with partner & status filters and inline confirmation action.
- * 5. Modals for Record Advance, Pay Distribution, and Add Capital Contribution.
- * 6. Export to Excel (.xlsx) action for partner settlement and collections.
- * 7. Internal account codes (3001, 7001, 1001, etc.) are hidden from normal view.
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -44,21 +33,17 @@ export const OwnersLoansPage: React.FC = () => {
   const queryClient = useQueryClient();
   const now = new Date();
 
-  // Selected Month for Distribution & Advances
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
 
-  // Existing Modals
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
   const [isDistributionModalOpen, setIsDistributionModalOpen] = useState(false);
   const [isCapitalModalOpen, setIsCapitalModalOpen] = useState(false);
 
-  // New Modals: Record Money Collected & Confirm Amount
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [targetCollection, setTargetCollection] = useState<OwnerCollection | null>(null);
 
-  // Collection Form State
   const [colCollectorName, setColCollectorName] = useState("Akash");
   const [colDate, setColDate] = useState(new Date().toISOString().split("T")[0]);
   const [colAmountRupees, setColAmountRupees] = useState("");
@@ -67,16 +52,13 @@ export const OwnersLoansPage: React.FC = () => {
   const [colSourceCategory, setColSourceCategory] = useState("Existing Business Funds");
   const [colNotes, setColNotes] = useState("");
 
-  // Confirmation Form State
   const [confirmAmountRupees, setConfirmAmountRupees] = useState("");
   const [confirmDate, setConfirmDate] = useState(new Date().toISOString().split("T")[0]);
   const [confirmNotes, setConfirmNotes] = useState("");
 
-  // Collections Table Filters
   const [filterPartner, setFilterPartner] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
 
-  // Selected partner for transaction modals
   const [targetPartnerId, setTargetPartnerId] = useState<number>(1);
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
   const [txAmountRupees, setTxAmountRupees] = useState<string>("");
@@ -87,7 +69,6 @@ export const OwnersLoansPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
-  // Queries
   const { data: monthlySummary } = useQuery<PartnerMonthlyDistributionSummary>({
     queryKey: ["partnerMonthlySummary", selectedYear, selectedMonth],
     queryFn: () => api.owners.getMonthlySummary(selectedYear, selectedMonth),
@@ -113,7 +94,6 @@ export const OwnersLoansPage: React.FC = () => {
     queryFn: () => api.accounts.list(),
   });
 
-  // Liquid accounts for funds placement (no technical codes shown)
   const liquidAccounts = accounts.filter((a) => ["1001", "1002", "1003", "1004"].includes(a.code));
   const paymentAccounts = accounts.filter((a) => a.code === "1001" || a.code === "1002");
 
@@ -141,7 +121,6 @@ export const OwnersLoansPage: React.FC = () => {
     }
   };
 
-  // Transaction mutation (capital, advances, distributions)
   const transactionMutation = useMutation({
     mutationFn: (data: OwnerTransactionCreate) => api.owners.recordTransaction(data),
     onSuccess: () => {
@@ -164,7 +143,6 @@ export const OwnersLoansPage: React.FC = () => {
     },
   });
 
-  // Record Collection Mutation
   const recordCollectionMutation = useMutation({
     mutationFn: (data: OwnerCollectionCreate) => api.owners.recordCollection(data),
     onSuccess: () => {
@@ -184,7 +162,6 @@ export const OwnersLoansPage: React.FC = () => {
     },
   });
 
-  // Confirm Collection Mutation
   const confirmCollectionMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: OwnerCollectionConfirm }) =>
       api.owners.confirmCollection(id, data),
@@ -205,7 +182,6 @@ export const OwnersLoansPage: React.FC = () => {
     },
   });
 
-  // Excel Export Handler
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
@@ -405,7 +381,6 @@ export const OwnersLoansPage: React.FC = () => {
   const targetPartner = owners.find((o) => o.id === targetPartnerId);
   const targetPartnerDetail = monthlySummary?.partners.find((p) => p.owner_id === targetPartnerId);
 
-  // Filtered collections
   const filteredCollections = collections.filter((c) => {
     if (filterPartner !== "ALL" && !c.collector_name.toLowerCase().includes(filterPartner.toLowerCase())) {
       return false;
@@ -418,7 +393,7 @@ export const OwnersLoansPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12 font-sans">
-      {/* Page Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -430,9 +405,8 @@ export const OwnersLoansPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Month Selector */}
+
           <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg p-1 text-xs">
             <Calendar className="w-4 h-4 text-slate-400 ml-1.5" />
             <select
@@ -459,7 +433,6 @@ export const OwnersLoansPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Record Money Collected Button */}
           <button
             onClick={handleOpenCollectionModal}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition cursor-pointer"
@@ -468,7 +441,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span>Record Money Collected</span>
           </button>
 
-          {/* Add Capital Button */}
           <button
             onClick={() => handleOpenCapital()}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md transition cursor-pointer"
@@ -477,7 +449,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span>Add Capital</span>
           </button>
 
-          {/* Export to Excel (.xlsx) */}
           <button
             onClick={handleExportExcel}
             disabled={isExporting}
@@ -490,7 +461,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Alerts */}
       {successMsg && (
         <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -504,7 +474,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── 1. MONTHLY PARTNER SUMMARY CARD ──────────────────────────────── */}
       <div
         className="rounded-2xl p-5 shadow-sm space-y-4"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -524,7 +493,7 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 pt-1">
-          {/* Net Distributable Profit */}
+
           <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-700/80">
             <span className="text-[11px] text-slate-400 font-medium">Eligible Net Profit</span>
             <div className="text-lg font-bold font-mono text-white mt-1">
@@ -533,7 +502,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span className="text-[10px] text-slate-500">Revenue minus expenses</span>
           </div>
 
-          {/* 40% Business Savings */}
           <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
             <span className="text-[11px] text-indigo-300 font-medium">Business Savings (40%)</span>
             <div className="text-lg font-bold font-mono text-indigo-300 mt-1">
@@ -542,7 +510,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span className="text-[10px] text-indigo-400/80">Business emergency reserve</span>
           </div>
 
-          {/* 60% Partners Pool */}
           <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/20">
             <span className="text-[11px] text-sky-300 font-medium">Partners Pool (60%)</span>
             <div className="text-lg font-bold font-mono text-sky-300 mt-1">
@@ -551,7 +518,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span className="text-[10px] text-sky-400/80">Shared equally (20% each)</span>
           </div>
 
-          {/* Akash Share */}
           <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
             <span className="text-[11px] text-slate-400 font-medium">Akash 20% Share</span>
             <div className="text-lg font-bold font-mono text-slate-100 mt-1">
@@ -560,7 +526,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span className="text-[10px] text-slate-500">Monthly allocation</span>
           </div>
 
-          {/* Pasan Share */}
           <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
             <span className="text-[11px] text-slate-400 font-medium">Pasan 20% Share</span>
             <div className="text-lg font-bold font-mono text-slate-100 mt-1">
@@ -569,7 +534,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span className="text-[10px] text-slate-500">Monthly allocation</span>
           </div>
 
-          {/* Vishwa Share */}
           <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-700/60">
             <span className="text-[11px] text-slate-400 font-medium">Vishwa 20% Share</span>
             <div className="text-lg font-bold font-mono text-slate-100 mt-1">
@@ -578,7 +542,6 @@ export const OwnersLoansPage: React.FC = () => {
             <span className="text-[10px] text-slate-500">Monthly allocation</span>
           </div>
 
-          {/* Total Remaining Payable */}
           <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
             <span className="text-[11px] text-emerald-300 font-bold">Remaining Due</span>
             <div className="text-lg font-bold font-mono text-emerald-400 mt-1">
@@ -589,7 +552,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 2. PARTNER PROFILES (CARDS) ──────────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -656,7 +618,6 @@ export const OwnersLoansPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Remaining Payable */}
                     <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-700">
                       <span className="font-semibold text-slate-200">Remaining Amount Payable:</span>
                       <span className={`font-mono text-base font-bold ${remainingPaise > 0 ? "text-amber-400" : "text-slate-400"}`}>
@@ -666,7 +627,6 @@ export const OwnersLoansPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="space-y-2 pt-2 border-t border-slate-700/60">
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -701,7 +661,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 3. MONEY COLLECTED BY PARTNERS (NEW SECTION) ─────────────────── */}
       <div
         className="rounded-2xl overflow-hidden shadow-sm"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -717,7 +676,6 @@ export const OwnersLoansPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Filters */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1">
               <Filter className="w-3 h-3 text-slate-400" />
@@ -837,7 +795,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 4. PARTNER FINANCIAL TRANSACTIONS TABLE ──────────────────────── */}
       <div
         className="rounded-2xl overflow-hidden shadow-sm"
         style={{ backgroundColor: "#1E293B", border: "1px solid #334155" }}
@@ -899,7 +856,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── MODAL: RECORD MONEY COLLECTED (NEW) ───────────────────────────── */}
       {isCollectionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -927,7 +883,7 @@ export const OwnersLoansPage: React.FC = () => {
             )}
 
             <form onSubmit={handleCollectionSubmit} className="space-y-3.5">
-              {/* 1. Collected by */}
+
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">1. Collected by *</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -948,7 +904,6 @@ export const OwnersLoansPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2. Amount Collected */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-medium text-slate-300">2. Amount Collected (Rs.) *</label>
@@ -983,7 +938,6 @@ export const OwnersLoansPage: React.FC = () => {
                 )}
               </div>
 
-              {/* 3. Collection Date */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">3. Collection Date *</label>
                 <input
@@ -995,7 +949,6 @@ export const OwnersLoansPage: React.FC = () => {
                 />
               </div>
 
-              {/* 4. Where the money is now */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">4. Where the Money Is Now *</label>
                 <select
@@ -1013,7 +966,6 @@ export const OwnersLoansPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* 5. Collection Source */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">5. Collection Source *</label>
                 <select
@@ -1031,7 +983,6 @@ export const OwnersLoansPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* 6. Notes */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">6. Notes (Optional)</label>
                 <input
@@ -1043,7 +994,6 @@ export const OwnersLoansPage: React.FC = () => {
                 />
               </div>
 
-              {/* 7. Save Collection */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-700/60">
                 <button
                   type="button"
@@ -1065,7 +1015,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: CONFIRM PENDING COLLECTION (NEW) ───────────────────────── */}
       {isConfirmModalOpen && targetCollection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -1173,7 +1122,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: RECORD ADVANCE ─────────────────────────────────────────── */}
       {isAdvanceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -1301,7 +1249,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: RECORD MONTHLY DISTRIBUTION ────────────────────────────── */}
       {isDistributionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div
@@ -1432,7 +1379,6 @@ export const OwnersLoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: RECORD CAPITAL CONTRIBUTION ───────────────────────────── */}
       {isCapitalModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div

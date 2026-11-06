@@ -1,9 +1,3 @@
-/**
- * AppLayout — main application shell with permanently expanded sidebar navigation.
- * Uses the specified dark palette: bg #0F172A, surface #1E293B, accent #38BDF8.
- * Bold, readable ~14px navigation typography.
- * Pool Town branded.
- */
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -137,12 +131,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: "#0F172A", color: "#F8FAFC" }}>
-      {/* ── Sidebar (Always expanded, fixed w-64, no collapse button) ── */}
+
       <aside
         className="w-64 shrink-0 flex flex-col border-r"
         style={{ backgroundColor: "#1E293B", borderColor: "#334155" }}
       >
-        {/* Brand — Pool Town */}
+
         <div
           className="flex items-center gap-3 px-4 py-4 border-b shrink-0"
           style={{ borderColor: "#334155" }}
@@ -167,7 +161,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
         </div>
 
-        {/* Navigation items: Bold, ~14px, readable */}
         <nav className="flex-1 overflow-y-auto py-3 space-y-4 px-2.5">
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>
@@ -198,7 +191,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        {/* Footer / Logout Button */}
         <div className="shrink-0 border-t p-3" style={{ borderColor: "#334155" }}>
           <button
             onClick={() => setShowLogoutModal(true)}
@@ -210,9 +202,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </div>
       </aside>
 
-      {/* ── Main Content Area ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header — Currency description text removed */}
+
         <header
           className="h-12 shrink-0 flex items-center justify-between px-6 border-b"
           style={{ backgroundColor: "#1E293B", borderColor: "#334155" }}
@@ -225,7 +216,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <span className="text-xs font-semibold text-slate-300">Pool Town ERP</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* Live Clock */}
+
             <div
               className="flex items-center gap-1.5 text-xs font-numeric font-bold tabular-nums px-3 py-1 rounded-md"
               style={{ backgroundColor: "#0F172A", color: "#94A3B8", border: "1px solid #334155" }}
@@ -233,7 +224,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <Clock className="w-3.5 h-3.5" style={{ color: "#38BDF8" }} />
               <span>{time || "…"}</span>
             </div>
-            {/* Authenticated user badge */}
+
             <div
               className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-md"
               style={{ backgroundColor: "#0F172A", color: "#F8FAFC", border: "1px solid #334155" }}
@@ -244,7 +235,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-screen-2xl mx-auto">
             {children}
@@ -252,7 +242,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </main>
       </div>
 
-      {/* ── Logout Confirmation Dialog ── */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div

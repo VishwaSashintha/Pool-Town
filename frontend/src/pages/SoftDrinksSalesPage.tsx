@@ -75,7 +75,6 @@ export const SoftDrinksSalesPage: React.FC = () => {
     }
   };
 
-  // Cancel sale states
   const [cancelSale, setCancelSale] = useState<SaleRecord | null>(null);
   const [cancelAdminUser, setCancelAdminUser] = useState("");
   const [cancelAdminPass, setCancelAdminPass] = useState("");
@@ -158,14 +157,13 @@ export const SoftDrinksSalesPage: React.FC = () => {
   const totalProfit = totalRevenue - totalCost;
   const totalSalesItems = Object.values(quantities).reduce((sum, q) => sum + q, 0);
 
-  // History summary (only active sales)
   const activeSales = salesHistory.filter((r) => !r.is_cancelled);
   const historySalesRevenue = activeSales.reduce((s, r) => s + r.total_revenue_paise, 0);
   const historySalesQty = activeSales.reduce((s, r) => s + r.quantity, 0);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">Soft Drinks Sales</h2>
@@ -186,7 +184,7 @@ export const SoftDrinksSalesPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left: Daily Entry Form */}
+
         <div className="lg:col-span-3 space-y-4">
           <div className="p-5 rounded-xl border border-border/70 bg-card/60 glass-panel space-y-4">
             <div className="flex items-center justify-between">
@@ -288,7 +286,6 @@ export const SoftDrinksSalesPage: React.FC = () => {
               </div>
             )}
 
-            {/* Sale Summary */}
             {totalSalesItems > 0 && (
               <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs">
                 <div className="flex justify-between text-muted-foreground">
@@ -323,7 +320,6 @@ export const SoftDrinksSalesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Sales History */}
         <div className="lg:col-span-2 space-y-4">
           <div className="p-5 rounded-xl border border-border/70 bg-card/60 glass-panel space-y-4">
             <div className="flex items-center justify-between">
@@ -411,7 +407,6 @@ export const SoftDrinksSalesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Cancel Drink Sale Modal ────────────────────────────────────────── */}
       {cancelSale && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-2xl space-y-4">
@@ -540,4 +535,3 @@ export const SoftDrinksSalesPage: React.FC = () => {
     </div>
   );
 };
-

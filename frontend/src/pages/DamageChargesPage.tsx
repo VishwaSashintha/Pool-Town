@@ -1,6 +1,3 @@
-/**
- * DamageChargesPage — Track player-caused equipment damage, collections, recoveries, and waivers.
- */
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,7 +23,6 @@ export const DamageChargesPage: React.FC = () => {
   const [selectedChargeForPayment, setSelectedChargeForPayment] = useState<DamageCharge | null>(null);
   const [selectedChargeForWaive, setSelectedChargeForWaive] = useState<DamageCharge | null>(null);
 
-  // Create Form states
   const [damageDate, setDamageDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | "">("");
   const [playerNameOverride, setPlayerNameOverride] = useState("");
@@ -35,13 +31,11 @@ export const DamageChargesPage: React.FC = () => {
   const [chargeAmountRs, setChargeAmountRs] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Payment Form states
   const [paymentAmountRs, setPaymentAmountRs] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer">("cash");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentNotes, setPaymentNotes] = useState("");
 
-  // Waive Form states
   const [resolutionNotes, setResolutionNotes] = useState("");
 
   const [errorMsg, setErrorMsg] = useState("");
@@ -184,7 +178,6 @@ export const DamageChargesPage: React.FC = () => {
     });
   };
 
-  // Filtered
   const filteredCharges = damageCharges.filter((c: DamageCharge) => {
     const matchesSearch =
       c.player_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,7 +187,6 @@ export const DamageChargesPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Metrics
   const totalCharged = damageCharges.reduce((sum: number, c: DamageCharge) => sum + c.charge_amount_paise, 0);
   const totalCollected = damageCharges.reduce((sum: number, c: DamageCharge) => sum + c.collected_paise, 0);
   const totalOutstanding = damageCharges
@@ -204,7 +196,7 @@ export const DamageChargesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -234,7 +226,6 @@ export const DamageChargesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -275,7 +266,6 @@ export const DamageChargesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -306,7 +296,6 @@ export const DamageChargesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Damage Charges Table */}
       <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -429,7 +418,6 @@ export const DamageChargesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Record Damage Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -582,7 +570,6 @@ export const DamageChargesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Collect Recovery Modal */}
       {selectedChargeForPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
@@ -692,7 +679,6 @@ export const DamageChargesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Waive Charge Modal */}
       {selectedChargeForWaive && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">

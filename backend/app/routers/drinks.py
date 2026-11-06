@@ -1,10 +1,3 @@
-"""
-Soft Drinks router — dedicated API for the drinks inventory, daily stock counts, 
-new stock deliveries, and daily sales entries.
-
-Uses existing Product, StockMovement, PhysicalStockCount, and ProductSale models.
-All drinks are products with category_id matching the 'Soft Drinks' category.
-"""
 from __future__ import annotations
 
 import json
@@ -38,7 +31,7 @@ def _get_or_create_drinks_category(db: Session) -> ProductCategory:
 
 
 def _get_stock_on_hand(db: Session, product_id: int, as_of_date: date | None = None) -> int:
-    """Calculate current stock from all movements up to as_of_date."""
+
     query = db.query(func.coalesce(func.sum(StockMovement.quantity_change), 0)).filter(
         StockMovement.product_id == product_id
     )
@@ -47,8 +40,6 @@ def _get_stock_on_hand(db: Session, product_id: int, as_of_date: date | None = N
     result = query.scalar()
     return result or 0
 
-
-# ── Schemas ───────────────────────────────────────────────────────────────────
 
 class DrinkProductCreate(BaseModel):
     name: str
@@ -101,7 +92,7 @@ class StockDeliveryRequest(BaseModel):
 class DailySalesEntry(BaseModel):
     product_id: int
     quantity_sold: int = Field(gt=0)
-    unit_price_paise: Optional[int] = None  # defaults to product selling price
+    unit_price_paise: Optional[int] = None
 
 
 class DailySalesRequest(BaseModel):
@@ -118,12 +109,10 @@ class StockDiscrepancy(BaseModel):
     actual_stock: int
     difference: int
     estimated_value_paise: int
-    status: str  # "over", "short", "match"
+    status: str
     notes: Optional[str] = None
     investigated: bool
 
-
-# ── Products ──────────────────────────────────────────────────────────────────
 
 @router.get("/products", response_model=list[DrinkProductResponse])
 def list_drink_products(
@@ -172,7 +161,7 @@ def create_drink_product(payload: DrinkProductCreate, db: Session = Depends(get_
     db.add(product)
     db.flush()
 
-    # Record opening stock if provided
+
     if payload.opening_stock > 0:
         movement = StockMovement(
             product_id=product.id,
@@ -230,13 +219,10 @@ def update_drink_product(product_id: int, payload: DrinkProductUpdate, db: Sessi
     )
 
 
-# ── Stock Counts ──────────────────────────────────────────────────────────────
-
 @router.post("/stock-count", status_code=201)
 def record_stock_count(payload: StockCountRequest, db: Session = Depends(get_db)):
-    """Record a physical stock count for multiple products on a given date.
-    This does NOT create stock movements — it records what was physically counted.
-    """
+
+
     created = []
     for entry in payload.entries:
         product = db.query(Product).filter(Product.id == entry.product_id).first()
@@ -246,7 +232,7 @@ def record_stock_count(payload: StockCountRequest, db: Session = Depends(get_db)
         expected = _get_stock_on_hand(db, entry.product_id, as_of_date=payload.count_date)
         discrepancy = entry.counted_quantity - expected
 
-        # Delete any existing count for same product+date (allow re-count)
+
         db.query(PhysicalStockCount).filter(
             PhysicalStockCount.product_id == entry.product_id,
             PhysicalStockCount.count_date == payload.count_date,
@@ -273,7 +259,7 @@ def get_stock_counts(
     count_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Get stock count records, optionally filtered by date."""
+
     cat = _get_or_create_drinks_category(db)
     drink_product_ids = [p.id for p in db.query(Product.id).filter(
         Product.category_id == cat.id
@@ -304,13 +290,10 @@ def get_stock_counts(
     return results
 
 
-# ── New Stock Delivery ────────────────────────────────────────────────────────
-
 @router.post("/stock-delivery", status_code=201)
 def record_stock_delivery(payload: StockDeliveryRequest, db: Session = Depends(get_db)):
-    """Record new stock received (a delivery or purchase).
-    This is a PURCHASE movement, not a physical count.
-    """
+
+
     product = db.query(Product).filter(Product.id == payload.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -327,7 +310,7 @@ def record_stock_delivery(payload: StockDeliveryRequest, db: Session = Depends(g
     )
     db.add(movement)
 
-    # Update product average cost
+
     current_stock = _get_stock_on_hand(db, product.id)
     new_stock = current_stock + payload.quantity
     if new_stock > 0:
@@ -343,11 +326,9 @@ def record_stock_delivery(payload: StockDeliveryRequest, db: Session = Depends(g
     }
 
 
-# ── Daily Sales ───────────────────────────────────────────────────────────────
-
 @router.post("/sales", status_code=201)
 def record_daily_sales(payload: DailySalesRequest, db: Session = Depends(get_db)):
-    """Record soft drink sales for one or more products on a given date."""
+
     created = []
     date_str = payload.sale_date.strftime("%Y%m%d")
 
@@ -361,7 +342,7 @@ def record_daily_sales(payload: DailySalesRequest, db: Session = Depends(get_db)
         total_revenue = unit_price * entry.quantity_sold
         total_cogs = unit_cost * entry.quantity_sold
 
-        # Check stock
+
         current_stock = _get_stock_on_hand(db, entry.product_id)
         if current_stock < entry.quantity_sold:
             raise HTTPException(
@@ -383,13 +364,13 @@ def record_daily_sales(payload: DailySalesRequest, db: Session = Depends(get_db)
             total_revenue_paise=total_revenue,
             unit_cost_paise=unit_cost,
             total_cogs_paise=total_cogs,
-            collected_paise=total_revenue,  # assume collected at sale
+            collected_paise=total_revenue,
             notes=payload.notes,
         )
         db.add(sale)
         db.flush()
 
-        # Stock movement (outgoing)
+
         movement = StockMovement(
             product_id=entry.product_id,
             movement_type=StockMovementType.SALE,
@@ -404,7 +385,7 @@ def record_daily_sales(payload: DailySalesRequest, db: Session = Depends(get_db)
         db.add(movement)
         db.flush()
 
-        # Journal entry: DR Cash 1001, CR Revenue 4003; DR COGS 5001, CR Inventory 1020
+
         if total_revenue > 0:
             rev_entry = JournalService.post_entry(
                 db,
@@ -449,7 +430,7 @@ def list_sales(
     sale_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
 ):
-    """List soft drink sales, optionally filtered by date."""
+
     cat = _get_or_create_drinks_category(db)
     drink_product_ids = [p.id for p in db.query(Product.id).filter(
         Product.category_id == cat.id
@@ -480,8 +461,6 @@ def list_sales(
     ]
 
 
-# ── Stock Issues / Discrepancy Report ────────────────────────────────────────
-
 @router.get("/issues", response_model=list[StockDiscrepancy])
 def get_stock_issues(
     start_date: Optional[date] = Query(None),
@@ -490,7 +469,7 @@ def get_stock_issues(
     unresolved_only: bool = Query(False),
     db: Session = Depends(get_db),
 ):
-    """Return stock discrepancies from physical counts vs expected stock."""
+
     cat = _get_or_create_drinks_category(db)
     drink_product_ids = [p.id for p in db.query(Product.id).filter(
         Product.category_id == cat.id
@@ -536,7 +515,7 @@ def get_stock_issues(
 
 @router.patch("/issues/{count_id}/resolve")
 def resolve_stock_issue(count_id: int, notes: str, db: Session = Depends(get_db)):
-    """Mark a stock discrepancy as investigated with resolution notes."""
+
     count = db.query(PhysicalStockCount).filter(PhysicalStockCount.id == count_id).first()
     if not count:
         raise HTTPException(status_code=404, detail="Stock count not found")
@@ -554,7 +533,7 @@ def list_stock_movements(
     end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
 ):
-    """List all stock movements (for audit trail)."""
+
     cat = _get_or_create_drinks_category(db)
     drink_product_ids = [p.id for p in db.query(Product.id).filter(
         Product.category_id == cat.id
@@ -586,8 +565,6 @@ def list_stock_movements(
     ]
 
 
-# ── Cancel Sale ───────────────────────────────────────────────────────────────
-
 class CancelSaleRequest(BaseModel):
     admin_username: str
     admin_password: str
@@ -595,7 +572,7 @@ class CancelSaleRequest(BaseModel):
 
 
 def _verify_admin_for_drinks(db: Session, username: str, password: str) -> None:
-    """Verify admin credentials for destructive drinks operations."""
+
     import json
     from app.models.audit import AppSetting
     from app.routers.auth import _get_setting as _gs, _verify_password as _vp, ensure_default_credentials
@@ -618,15 +595,8 @@ def cancel_drink_sale(
     payload: CancelSaleRequest,
     db: Session = Depends(get_db),
 ):
-    """
-    Cancel a posted soft-drink sale.
-    - Verifies admin credentials server-side.
-    - Rejects already-cancelled sales.
-    - Reverses revenue and COGS journal entries.
-    - Creates a compensating +qty stock movement (CORRECTION type) to restore stock.
-    - Marks the sale record with a CANCELLED note for audit trail.
-    - Writes an AuditLog entry.
-    """
+
+
     from datetime import datetime, timezone
     from app.models.audit import AuditLog
 
@@ -636,14 +606,14 @@ def cancel_drink_sale(
     if not sale:
         raise HTTPException(status_code=404, detail="Sale record not found")
 
-    # Check already cancelled (we tag notes as the lightweight status flag)
+
     if sale.notes and _CANCEL_TAG in sale.notes:
         raise HTTPException(status_code=409, detail="This sale has already been cancelled.")
 
     reason = (payload.reason or "Administrator cancellation").strip() or "Administrator cancellation"
     today = datetime.now(timezone.utc).date()
 
-    # 1. Reverse revenue journal entry
+
     if sale.journal_entry_id:
         try:
             JournalService.reverse_entry(
@@ -656,7 +626,7 @@ def cancel_drink_sale(
             if "already reversed" not in str(e).lower():
                 raise HTTPException(status_code=422, detail=f"Failed to reverse revenue entry: {e}")
 
-    # 2. Find and reverse COGS journal entry (source_type='product_sale_cogs', source_id=sale.id)
+
     from app.models.journal import JournalEntry, JournalEntryStatus
     cogs_entry = db.query(JournalEntry).filter(
         JournalEntry.source_type == "product_sale_cogs",
@@ -675,11 +645,11 @@ def cancel_drink_sale(
             if "already reversed" not in str(e).lower():
                 raise HTTPException(status_code=422, detail=f"Failed to reverse COGS entry: {e}")
 
-    # 3. Restore stock with a compensating CORRECTION movement
+
     correction = StockMovement(
         product_id=sale.product_id,
         movement_type=StockMovementType.CORRECTION,
-        quantity_change=+sale.quantity,  # restore what was sold
+        quantity_change=+sale.quantity,
         unit_cost_paise=sale.unit_cost_paise,
         event_date=today,
         reference=f"CORR-{sale.reference}",
@@ -689,11 +659,11 @@ def cancel_drink_sale(
     )
     db.add(correction)
 
-    # 4. Mark the sale as cancelled in the notes (non-destructive)
+
     cancel_note = f"{_CANCEL_TAG} Cancelled on {today} by administrator. Reason: {reason}"
     sale.notes = (sale.notes + " " + cancel_note).strip() if sale.notes else cancel_note
 
-    # 5. Audit log
+
     product = db.query(Product).filter(Product.id == sale.product_id).first()
     db.add(AuditLog(
         entity_type="product_sale",

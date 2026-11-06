@@ -36,7 +36,6 @@ export const ReportsPage: React.FC = () => {
     queryFn: () => api.expenses.list(),
   });
 
-  // Filter by selectedMonth if set
   const filteredPool = selectedMonth
     ? poolSessions.filter((s) => s.session_date.startsWith(selectedMonth))
     : poolSessions;
@@ -47,7 +46,6 @@ export const ReportsPage: React.FC = () => {
     ? expenses.filter((e) => e.expense_date.startsWith(selectedMonth))
     : expenses;
 
-  // Calculate totals
   const totalPoolPaise = filteredPool.reduce((acc, s) => acc + s.final_charge_paise, 0);
   const totalPS4Paise = filteredPS4.reduce((acc, s) => acc + s.final_charge_paise, 0);
   const totalRevenuePaise = totalPoolPaise + totalPS4Paise;
@@ -55,8 +53,6 @@ export const ReportsPage: React.FC = () => {
   const totalExpensePaise = filteredExpenses.reduce((acc, e) => acc + e.amount_paise, 0);
   const netIncomePaise = Math.max(0, totalRevenuePaise - totalExpensePaise);
 
-  // Profit Allocation (Decision D-009):
-  // 40% Savings, 20% Akash, 20% Pasan, remainder to Vishwa
   const savingsSharePaise = Math.round(netIncomePaise * 0.4);
   const akashSharePaise = Math.round(netIncomePaise * 0.2);
   const pasanSharePaise = Math.round(netIncomePaise * 0.2);
@@ -76,7 +72,7 @@ export const ReportsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Month Selector */}
+
           <div className="flex items-center gap-3 p-2 rounded-xl border border-border/70 bg-card/40 glass-panel">
             <Calendar className="h-4 w-4 text-emerald-400" />
             <span className="text-xs text-muted-foreground">Period:</span>
@@ -108,7 +104,6 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Top 3 Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="p-5 rounded-xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/10 to-transparent glass-panel space-y-2">
           <div className="flex items-center justify-between">
@@ -146,7 +141,6 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Income Statement Detailed Table */}
       <div className="rounded-xl border border-border/70 bg-card/60 p-6 glass-panel space-y-4">
         <h3 className="font-semibold text-lg text-white">Income Statement Summary</h3>
         <div className="border border-border/60 rounded-xl overflow-hidden font-mono text-xs">
@@ -191,7 +185,6 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Proposed Partner Profit Allocation Model */}
       <div className="rounded-xl border border-emerald-500/30 bg-card/60 p-6 glass-panel space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

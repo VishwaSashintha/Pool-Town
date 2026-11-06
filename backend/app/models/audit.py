@@ -1,7 +1,3 @@
-"""
-Audit log model — append-only record of all significant actions.
-Never delete or update audit records.
-"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -13,10 +9,8 @@ from app.models.base import Base, utcnow
 
 
 class AuditLog(Base):
-    """
-    Immutable audit record.
-    No updated_at — audit records are never modified.
-    """
+
+
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -28,8 +22,8 @@ class AuditLog(Base):
     entity_type: Mapped[str] = mapped_column(String(100), nullable=False)
     entity_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    old_values: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
-    new_values: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    old_values: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    new_values: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     def __repr__(self) -> str:
@@ -37,16 +31,13 @@ class AuditLog(Base):
 
 
 class AppSetting(Base):
-    """
-    Application configuration settings stored in the database.
-    key: unique setting identifier
-    value: JSON-serialized value
-    """
+
+
     __tablename__ = "app_settings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     key: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
-    value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     updated_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(

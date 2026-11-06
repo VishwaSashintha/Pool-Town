@@ -36,10 +36,6 @@ from app.utils.money import allocate_profit
 router = APIRouter(prefix="/api/owners", tags=["Owners & Loans"])
 
 
-# ==========================================
-# OWNERS & CAPITAL ACCOUNTS
-# ==========================================
-
 @router.get("", response_model=list[OwnerResponse])
 def list_owners(db: Session = Depends(get_db)):
     owners = db.query(Owner).filter(Owner.is_active == True).order_by(Owner.id).all()
@@ -51,7 +47,7 @@ def list_owners(db: Session = Depends(get_db)):
         capital_bal = JournalService.get_account_balance(db, capital_code)
         dist_bal = JournalService.get_account_balance(db, dist_code)
 
-        # Calculate active owner loan balance
+
         owner_loans = db.query(Loan).filter(
             Loan.owner_id == o.id,
             Loan.status == LoanStatus.ACTIVE
@@ -86,10 +82,8 @@ def get_monthly_distribution_summary(
     month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db),
 ):
-    """
-    Returns monthly eligible net profit, 40% business savings allocation, and 20% allocation
-    for each partner, along with recorded advances, distributions, and remaining payable balances.
-    """
+
+
     preview = preview_profit_allocation(year=year, month=month, db=db)
     net_profit = preview.net_distributable_profit_paise
     savings_allocation = preview.savings_share_paise
@@ -117,7 +111,7 @@ def get_monthly_distribution_summary(
         capital_code = f"300{o.id}"
         capital_bal = JournalService.get_account_balance(db, capital_code)
 
-        # Query advances for this partner and period
+
         adv_query = db.query(func.coalesce(func.sum(OwnerTransaction.amount_paise), 0)).filter(
             OwnerTransaction.owner_id == o.id,
             OwnerTransaction.transaction_type == OwnerTransactionType.ADVANCE,
@@ -126,7 +120,7 @@ def get_monthly_distribution_summary(
         )
         advances_paid = adv_query.scalar() or 0
 
-        # Query distributions paid for this partner and period
+
         dist_query = db.query(func.coalesce(func.sum(OwnerTransaction.amount_paise), 0)).filter(
             OwnerTransaction.owner_id == o.id,
             OwnerTransaction.transaction_type.in_([OwnerTransactionType.DISTRIBUTION, OwnerTransactionType.WITHDRAWAL]),
@@ -215,7 +209,7 @@ def record_owner_transaction(payload: OwnerTransactionCreate, db: Session = Depe
     count = db.query(OwnerTransaction).filter(OwnerTransaction.reference.like(f"OTX-{date_str}-%")).count()
     reference = f"OTX-{date_str}-{count + 1:04d}"
 
-    # Determine transaction type enum
+
     try:
         tx_type_enum = OwnerTransactionType(payload.transaction_type.lower())
     except ValueError:
@@ -224,7 +218,7 @@ def record_owner_transaction(payload: OwnerTransactionCreate, db: Session = Depe
     target_year = payload.period_year or payload.transaction_date.year
     target_month = payload.period_month or payload.transaction_date.month
 
-    # If distribution, validate against remaining payable
+
     if tx_type_enum == OwnerTransactionType.DISTRIBUTION:
         preview = preview_profit_allocation(year=target_year, month=target_month, db=db)
         name_lower = owner.name.strip().lower()
@@ -333,10 +327,6 @@ def record_owner_transaction(payload: OwnerTransactionCreate, db: Session = Depe
     )
 
 
-# ==========================================
-# LOAN MANAGEMENT
-# ==========================================
-
 @router.get("/loans", response_model=list[LoanResponse])
 def list_loans(
     status: Optional[str] = Query(default=None),
@@ -353,7 +343,7 @@ def list_loans(
 
     results = []
     for loan in loans:
-        # Calculate current outstanding principal = original - sum(principal repayments)
+
         principal_repaid = db.query(
             func.coalesce(func.sum(LoanTransaction.amount_paise), 0)
         ).filter(
@@ -413,7 +403,7 @@ def create_loan(payload: LoanCreate, db: Session = Depends(get_db)):
     db.add(loan)
     db.flush()
 
-    # Optional: Disburse loan funds into Cash/Bank
+
     if payload.disburse_to_account_id:
         target_acct = db.query(FinancialAccount).filter(FinancialAccount.id == payload.disburse_to_account_id).first()
         if target_acct:
@@ -432,7 +422,7 @@ def create_loan(payload: LoanCreate, db: Session = Depends(get_db)):
                 source_id=loan.id,
             )
 
-            # Record receipt transaction
+
             receipt_tx = LoanTransaction(
                 reference=f"{reference}-REC",
                 loan_id=loan.id,
@@ -513,7 +503,7 @@ def record_loan_repayment(loan_id: int, payload: LoanRepaymentCreate, db: Sessio
     date_str = payload.repayment_date.strftime("%Y%m%d")
     count = db.query(LoanTransaction).filter(LoanTransaction.reference.like(f"LR-{date_str}-%")).count()
 
-    # Build balanced journal lines: DR Loan Liability (principal) + DR Interest Expense (interest) == CR Cash/Bank (total)
+
     jlines: list[JournalLineInput] = []
     if payload.principal_amount_paise > 0:
         jlines.append(
@@ -537,7 +527,7 @@ def record_loan_repayment(loan_id: int, payload: LoanRepaymentCreate, db: Sessio
         notes=payload.notes,
     )
 
-    # Record individual loan transactions
+
     if payload.principal_amount_paise > 0:
         ref_prin = f"LR-{date_str}-{count + 1:04d}-PRIN"
         prin_tx = LoanTransaction(
@@ -568,7 +558,7 @@ def record_loan_repayment(loan_id: int, payload: LoanRepaymentCreate, db: Sessio
         )
         db.add(int_tx)
 
-    # Check if settled
+
     db.flush()
     total_repaid = db.query(func.coalesce(func.sum(LoanTransaction.amount_paise), 0)).filter(
         LoanTransaction.loan_id == loan.id,
@@ -582,59 +572,55 @@ def record_loan_repayment(loan_id: int, payload: LoanRepaymentCreate, db: Sessio
     return {"message": "Loan payment posted successfully", "journal_reference": entry.reference}
 
 
-# ==========================================
-# PROFIT ALLOCATION (PERIOD CLOSE APPROVAL)
-# ==========================================
-
 @router.get("/profit-allocation/preview", response_model=ProfitAllocationPreview)
 def preview_profit_allocation(
     year: int = Query(...),
     month: int = Query(...),
     db: Session = Depends(get_db),
 ):
-    """Calculates distributable net operating profit and proposed 40% Savings, 20% Akash, 20% Pasan, 20% Vishwa split."""
-    # Check if already posted
+
+
     existing = db.query(ProfitAllocation).filter(
         ProfitAllocation.period_year == year,
         ProfitAllocation.period_month == month,
     ).first()
 
-    # Calculate month date range
+
     from calendar import monthrange
     days_in_month = monthrange(year, month)[1]
     start_date = date(year, month, 1)
     end_date = date(year, month, days_in_month)
 
-    # Sum revenues (4xxx)
+
     rev_lines = db.query(func.coalesce(func.sum(JournalLine.amount_paise), 0)).join(JournalEntry).filter(
         JournalEntry.entry_date >= start_date,
         JournalEntry.entry_date <= end_date,
         JournalEntry.status == JournalEntryStatus.POSTED,
         JournalLine.account_code.like("4%"),
-        JournalLine.is_debit == False,  # Credits to revenue
+        JournalLine.is_debit == False,
     ).scalar() or 0
 
-    # Sum COGS (5xxx)
+
     cogs_lines = db.query(func.coalesce(func.sum(JournalLine.amount_paise), 0)).join(JournalEntry).filter(
         JournalEntry.entry_date >= start_date,
         JournalEntry.entry_date <= end_date,
         JournalEntry.status == JournalEntryStatus.POSTED,
         JournalLine.account_code.like("5%"),
-        JournalLine.is_debit == True,  # Debits to COGS
+        JournalLine.is_debit == True,
     ).scalar() or 0
 
-    # Sum Operating Expenses (6xxx)
+
     exp_lines = db.query(func.coalesce(func.sum(JournalLine.amount_paise), 0)).join(JournalEntry).filter(
         JournalEntry.entry_date >= start_date,
         JournalEntry.entry_date <= end_date,
         JournalEntry.status == JournalEntryStatus.POSTED,
         JournalLine.account_code.like("6%"),
-        JournalLine.is_debit == True,  # Debits to expense
+        JournalLine.is_debit == True,
     ).scalar() or 0
 
     net_profit = max(0, rev_lines - cogs_lines - exp_lines)
 
-    # Split: 40% savings, 20% akash, 20% pasan, remainder to vishwa (per D-009)
+
     shares = allocate_profit(
         net_profit,
         {"savings": 4000, "akash": 2000, "pasan": 2000, "vishwa": 2000}
@@ -656,10 +642,9 @@ def preview_profit_allocation(
     )
 
 
-
 @router.post("/profit-allocation/post", status_code=201)
 def post_profit_allocation(payload: ProfitAllocationPost, db: Session = Depends(get_db)):
-    """Posts formal balanced journal entry allocating profit into equity accounts with explicit owner approval."""
+
     existing = db.query(ProfitAllocation).filter(
         ProfitAllocation.period_year == payload.year,
         ProfitAllocation.period_month == payload.month,
@@ -692,8 +677,7 @@ def post_profit_allocation(payload: ProfitAllocationPost, db: Session = Depends(
     db.add(palloc)
     db.flush()
 
-    # Lines:
-    # ProfitAllocationLine items
+
     recipients = [
         ("savings", 4000, preview.savings_share_paise),
         ("akash", 2000, preview.akash_share_paise),
@@ -709,12 +693,7 @@ def post_profit_allocation(payload: ProfitAllocationPost, db: Session = Depends(
         )
         db.add(line_rec)
 
-    # Post balanced journal entry:
-    # DR Retained Earnings (3010) for net profit
-    # CR Profit Allocation — Savings (3011)
-    # CR Profit Allocation — Akash (3012)
-    # CR Profit Allocation — Pasan (3013)
-    # CR Profit Allocation — Vishwa (3014)
+
     jlines = [
         JournalLineInput("3010", "Retained Earnings", True, preview.net_distributable_profit_paise, "Profit allocation debit"),
         JournalLineInput("3011", "Profit Allocation — Savings", False, preview.savings_share_paise, "40% Savings Reserve"),
@@ -741,10 +720,6 @@ def post_profit_allocation(payload: ProfitAllocationPost, db: Session = Depends(
         "journal_reference": entry.reference,
     }
 
-
-# ==========================================
-# OWNER / PARTNER COLLECTION RECORDING
-# ==========================================
 
 @router.get("/collections", response_model=list[OwnerCollectionResponse])
 def list_owner_collections(
@@ -804,16 +779,13 @@ def record_owner_collection(
     payload: OwnerCollectionCreate,
     db: Session = Depends(get_db),
 ):
-    """
-    Record business money collected by an owner/partner (Akash, Pasan, Vishwa).
-    If amount is not known, sets status to PENDING_CONFIRMATION and does NOT modify financial balances.
-    If amount is known and confirmed, posts accounting entries appropriately without duplicating income.
-    """
+
+
     dest_acct = db.query(FinancialAccount).filter(FinancialAccount.id == payload.destination_account_id).first()
     if not dest_acct:
         raise HTTPException(status_code=400, detail="Invalid destination financial account")
 
-    # Match owner if collector is one of the partners
+
     owner_id = payload.owner_id
     if not owner_id:
         c_match = db.query(Owner).filter(Owner.name.ilike(f"%{payload.collector_name.strip()}%")).first()
@@ -843,7 +815,7 @@ def record_owner_collection(
     db.add(collection)
     db.flush()
 
-    # If confirmed with an amount, post appropriate accounting entry
+
     journal_id = None
     if status == OwnerCollectionStatus.CONFIRMED and amount_paise:
         source_cat = payload.source_category.strip()
@@ -864,7 +836,7 @@ def record_owner_collection(
             )
             journal_id = entry.id
         elif dest_acct.code == "1002" and source_cat in ("Existing Business Funds", "Pool Table Payments", "PS4 Payments", "Soft Drink Sales", "Other"):
-            # Cash collected and deposited into Main Bank account
+
             lines = [
                 JournalLineInput("1002", "Main Bank Account", True, amount_paise),
                 JournalLineInput("1001", "Cash in Hand", False, amount_paise),
@@ -880,7 +852,7 @@ def record_owner_collection(
                 notes=payload.notes,
             )
             journal_id = entry.id
-        # When funds remain in Cash in Hand (1001) for session/drinks, no second revenue entry is posted!
+
 
     collection.journal_entry_id = journal_id
     db.commit()
@@ -912,10 +884,8 @@ def confirm_owner_collection(
     payload: OwnerCollectionConfirm,
     db: Session = Depends(get_db),
 ):
-    """
-    Confirm a pending collection with the exact amount discovered/counted.
-    Once confirmed, posts the accounting entry exactly once and updates financial balances.
-    """
+
+
     collection = db.query(OwnerCollection).filter(OwnerCollection.id == collection_id).first()
     if not collection:
         raise HTTPException(status_code=404, detail="Collection record not found")
@@ -938,7 +908,7 @@ def confirm_owner_collection(
         existing = collection.notes or ""
         collection.notes = f"{existing} | Confirmed: {payload.notes}".strip(" | ")
 
-    # Post accounting entry once
+
     journal_id = None
     source_cat = collection.source_category.strip()
     c_date = payload.confirmed_date or collection.collection_date
@@ -1042,4 +1012,3 @@ def update_owner_collection(
         journal_entry_id=collection.journal_entry_id,
         created_at=collection.created_at,
     )
-

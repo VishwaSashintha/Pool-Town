@@ -1,8 +1,3 @@
-"""
-Tests for Owner Collections feature and Excel (.xlsx) Exports.
-Ensures accounting accuracy, zero duplicate revenue, pending confirmation workflows,
-and valid Excel workbook generation across all reporting modules.
-"""
 import io
 import openpyxl
 import pytest
@@ -19,14 +14,14 @@ def seed_data(db):
 
 
 def test_record_confirmed_owner_collection(client, db):
-    """Recording a confirmed collection with known amount updates correctly."""
+
     cash_acct = db.query(FinancialAccount).filter(FinancialAccount.code == "1001").first()
     assert cash_acct is not None
 
     payload = {
         "collector_name": "Akash",
         "collection_date": date.today().isoformat(),
-        "amount_paise": 600000,  # Rs. 6,000
+        "amount_paise": 600000,
         "destination_account_id": cash_acct.id,
         "source_category": "Pool Table Payments",
         "notes": "End of shift table cash collection",
@@ -40,12 +35,12 @@ def test_record_confirmed_owner_collection(client, db):
     assert data["collector_name"] == "Akash"
     assert data["amount_paise"] == 600000
     assert data["status"] == "CONFIRMED"
-    # For Pool Table Payments kept in Cash in Hand (1001), no duplicate revenue entry is posted!
+
     assert data["journal_entry_id"] is None
 
 
 def test_record_pending_owner_collection_and_confirm(client, db):
-    """Recording an unknown amount leaves balances unchanged until confirmed."""
+
     bank_acct = db.query(FinancialAccount).filter(FinancialAccount.code == "1002").first()
     initial_bank_bal = JournalService.get_account_balance(db, "1002")
 
@@ -67,13 +62,13 @@ def test_record_pending_owner_collection_and_confirm(client, db):
     assert data["amount_paise"] is None
     assert data["journal_entry_id"] is None
 
-    # Balance must remain completely unchanged!
+
     db.expire_all()
     assert JournalService.get_account_balance(db, "1002") == initial_bank_bal
 
-    # Now confirm the collection
+
     confirm_payload = {
-        "amount_paise": 1500000,  # Rs. 15,000
+        "amount_paise": 1500000,
         "notes": "Counted and verified envelope contents",
         "confirmed_date": date.today().isoformat(),
     }
@@ -84,14 +79,14 @@ def test_record_pending_owner_collection_and_confirm(client, db):
     assert c_data["amount_paise"] == 1500000
     assert c_data["journal_entry_id"] is not None
 
-    # Balance should now reflect the confirmed income
+
     db.expire_all()
     new_bank_bal = JournalService.get_account_balance(db, "1002")
     assert new_bank_bal == initial_bank_bal + 1500000
 
 
 def test_list_collections_with_filters(client):
-    """Collections list endpoint supports filtering by partner, status, and dates."""
+
     res = client.get("/api/owners/collections?collector_name=Akash")
     assert res.status_code == 200
     items = res.json()
@@ -114,15 +109,15 @@ def test_list_collections_with_filters(client):
     ("/api/reports/export/drinks", "soft_drinks"),
 ])
 def test_excel_exports_produce_valid_workbooks(client, export_endpoint, filename_keyword):
-    """Every Excel export endpoint returns 200 and a valid, readable .xlsx file."""
+
     res = client.get(export_endpoint)
     assert res.status_code == 200
     assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in res.headers["content-type"]
     assert filename_keyword in res.headers["content-disposition"]
 
-    # Load content into openpyxl to verify genuine, uncorrupted Excel structure
+
     buf = io.BytesIO(res.content)
     wb = openpyxl.load_workbook(buf)
     assert len(wb.sheetnames) >= 1
     ws = wb.active
-    assert ws.max_row >= 4  # Must have title block and headers
+    assert ws.max_row >= 4

@@ -1,7 +1,3 @@
-/**
- * Authentication context — manages session token, login/logout state.
- * Token stored in sessionStorage (not localStorage) so it clears on tab close.
- */
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 interface AuthContextType {
@@ -34,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await fetch(`/api/auth/logout?token=${encodeURIComponent(t)}`, { method: "POST" });
       } catch {
-        // ignore network errors on logout
+
       }
     }
     sessionStorage.removeItem(TOKEN_KEY);
@@ -43,7 +39,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsername(null);
   }, []);
 
-  // Verify token is still valid on mount
   useEffect(() => {
     if (!token) return;
     fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`, { method: "POST" })
@@ -57,9 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       })
       .catch(() => {
-        // server unreachable — keep token, will fail on next API call
+
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthContext.Provider value={{ token, username, isAuthenticated: !!token, login, logout }}>

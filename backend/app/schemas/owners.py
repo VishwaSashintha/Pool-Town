@@ -20,9 +20,9 @@ class OwnerResponse(BaseModel):
 class OwnerTransactionCreate(BaseModel):
     owner_id: int
     transaction_date: date
-    transaction_type: str  # initial_capital, additional_capital, withdrawal, distribution, advance
+    transaction_type: str
     amount_paise: int = Field(gt=0)
-    account_id: int  # 1 (Cash) or 2 (Bank)
+    account_id: int
     description: str = Field(min_length=2, max_length=500)
     period_year: Optional[int] = None
     period_month: Optional[int] = None
@@ -72,16 +72,15 @@ class PartnerMonthlyDistributionSummary(BaseModel):
     partners: list[PartnerMonthlyDetail]
 
 
-
 class LoanCreate(BaseModel):
     lender_name: str = Field(min_length=2, max_length=200)
-    loan_type: str  # bank, external, owner
+    loan_type: str
     original_principal_paise: int = Field(gt=0)
     start_date: date
     interest_rate_bps: int = Field(ge=0, default=0)
     repayment_terms: Optional[str] = None
     owner_id: Optional[int] = None
-    disburse_to_account_id: Optional[int] = None  # Cash 1001 or Bank 1002
+    disburse_to_account_id: Optional[int] = None
     notes: Optional[str] = None
 
 
@@ -107,7 +106,7 @@ class LoanRepaymentCreate(BaseModel):
     repayment_date: date
     principal_amount_paise: int = Field(ge=0, default=0)
     interest_amount_paise: int = Field(ge=0, default=0)
-    account_id: int  # Cash 1001 or Bank 1002
+    account_id: int
     notes: Optional[str] = None
 
 
@@ -189,4 +188,3 @@ class OwnerCollectionResponse(BaseModel):
     created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
-
