@@ -24,6 +24,8 @@ backend/build/
 # Installer
 installer/output/
 installer/launcher/*.exe
+PoolTownERP-Setup.exe
+*.exe
 *.whl
 
 # SQLite databases (live DB — never commit)
